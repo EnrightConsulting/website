@@ -1,43 +1,97 @@
-# EnView 0.4 — Assets & Locations
+# EnView 0.5 — Core Engine
 
-This release introduces the core EnView data model:
+EnView 0.5 moves the project from a collection of screens to a working object-based platform.
 
-- Assets are first-class objects
-- Every asset has a permanent page
-- Every asset belongs to a location hierarchy
-- Users can browse by asset or by location
-- Favorite asset cards provide one-click access
-- Global search finds assets and locations
-- Asset detail pages combine identity, location, health, history and intelligence
+## What is new
 
-## Included
+### Permanent EnView IDs
 
-- Updated Dashboard with favorite asset cards
-- New Locations navigation and location cards
-- New All Assets page with category filters
-- Working asset detail pages
-- Working location detail pages
-- Location hierarchy display
-- Move Asset quick action concept
-- Improved navigation grouping
-- Search across assets and locations
-- Responsive mobile layout
+Every object has a stable identifier:
 
-## Deploy
+- `ENV-VEH-0001`
+- `ENV-EQP-0001`
+- `ENV-ENG-0001`
+- `ENV-LOC-0001`
+- `ENV-PART-0001`
 
-Upload these items to the root of the GitHub `website` repository:
+The identifier remains stable even if an object is renamed or moved.
+
+### Core object types
+
+- Assets
+- Locations
+- Parts
+- Relationships
+- Service history
+- Documents and photos placeholders
+
+### Working local persistence
+
+New assets, locations and parts are saved in browser `localStorage`.
+
+This is not yet a multi-user cloud database, but it proves the Core Engine behavior and data model before adding authentication and a hosted backend.
+
+### Parts and ordering foundation
+
+Part records now include:
+
+- Part number
+- Compatible asset IDs
+- Preferred retailer
+- Retailer search links
+- Verified-fitment status
+- Quantity on hand
+- Inventory location
+
+The interface can open Amazon or Walmart search results for a stored part. EnView does not sign into or place orders in a user's retail account.
+
+### Relationships
+
+Assets can connect to:
+
+- Locations
+- Parts
+- Other assets
+- Power systems
+- Network devices
+
+Example:
+
+`ENV-VEH-0001 → uses_part → ENV-PART-0001`
+
+## Files
 
 - `index.html`
-- `README.md`
 - `assets/css/styles.css`
 - `assets/js/app.js`
+- `assets/data/core.json`
+- `README.md`
 
-Replace the current files. Cloudflare Pages should deploy automatically.
+## GitHub deployment
 
-Old root-level `styles.css`, `app.js`, `css/`, `js/`, and `maintenance.html` files are no longer required once the new `assets` structure is working.
+Upload the contents of this package to the root of the `website` repository. Replace the current EnView files and preserve the folder structure.
+
+Cloudflare Pages should deploy automatically.
+
+## Important cleanup
+
+The site only needs the new `assets` folder structure. Old root-level copies such as these can be removed after confirming deployment:
+
+- `app.js`
+- `styles.css`
+- `css/`
+- `js/`
+- `maintenance.html`
 
 ## Next release
 
-EnView 0.5 — First Real Asset
+**EnView 0.6 — First Real Asset**
 
-Build the complete 2021 Volkswagen Tiguan experience with structured service history, parts, fluids, specifications, documents and a fast service logging workflow.
+Build the full 2021 Volkswagen Tiguan experience on top of the Core Engine:
+
+- Complete specifications
+- Structured maintenance history
+- Parts and fluids
+- Documents
+- Upcoming service
+- Quick maintenance logging

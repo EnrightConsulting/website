@@ -1,180 +1,319 @@
-const assets = [
-  {id:"tiguan",name:"2021 Volkswagen Tiguan",icon:"🚙",type:"vehicle",health:"Healthy",healthClass:"green",location:["Main House","Garage","Bay 2"],metricLabel:"Mileage",metric:"104,150 mi",secondary:"Oil due in 650 mi",favorite:true},
-  {id:"ram",name:"2022 Ram 1500",icon:"🛻",type:"vehicle",health:"Attention Soon",healthClass:"amber",location:["Main House","Garage","Bay 1"],metricLabel:"Next service",metric:"650 mi",secondary:"Oil service due soon",favorite:true},
-  {id:"battery",name:"Harris Battery",icon:"🔋",type:"energy",health:"Healthy",healthClass:"green",location:["Main House","Garage","Solar wall"],metricLabel:"Status",metric:"Online",secondary:"Live PowerView data",favorite:true},
-  {id:"hvac",name:"Main House HVAC",icon:"❄",type:"home",health:"Attention Soon",healthClass:"amber",location:["Main House","Hallway","Mechanical closet"],metricLabel:"Filter",metric:"Due next week",secondary:"20 × 25 × 4",favorite:true},
-  {id:"camera",name:"Barndo Exterior Camera",icon:"📷",type:"network",health:"Offline",healthClass:"red",location:["Barndo","Exterior","North wall"],metricLabel:"Status",metric:"Offline",secondary:"Reboot may be required",favorite:true},
-  {id:"husqvarna",name:"Husqvarna Z254F",icon:"🚜",type:"equipment",health:"Healthy",healthClass:"green",location:["Barndo","Workshop","Equipment bay"],metricLabel:"Hours",metric:"185 hr",secondary:"Blade inspection upcoming",favorite:true},
-  {id:"pressure",name:"Troy-Bilt Pressure Washer",icon:"🧰",type:"equipment",health:"Healthy",healthClass:"green",location:["Barndo","Workshop","Back wall"],metricLabel:"Last service",metric:"May 2026",secondary:"Ready to use",favorite:false},
-  {id:"hoobs",name:"HOOBS Bridge",icon:"◉",type:"network",health:"Healthy",healthClass:"green",location:["Main House","Kitchen","Top cabinet"],metricLabel:"IP address",metric:"192.168.1.200",secondary:"HomeKit bridge",favorite:false},
-  {id:"solark",name:"Sol-Ark 12KP",icon:"⚡",type:"energy",health:"Healthy",healthClass:"green",location:["Main House","Garage","Solar wall"],metricLabel:"Status",metric:"Online",secondary:"Inverter connected",favorite:false}
-];
+const STORAGE_KEY = "enview-core-v0.5";
 
-const locations = [
-  {id:"main-house",name:"Main House",icon:"🏠",type:"Property",description:"Primary residence, attached garage and home systems"},
-  {id:"barndo",name:"Barndo",icon:"🏡",type:"Property",description:"Workshop, garage, cameras and connected equipment"},
-  {id:"pronto",name:"Pronto Services",icon:"🏢",type:"Business",description:"Office, shop, trucks, dumpsters and operations"},
-  {id:"storage-a",name:"Storage Unit A",icon:"📦",type:"Storage",description:"Future inventory and asset storage location"},
-  {id:"tilted-pint",name:"Tilted Pint",icon:"🍽",type:"Business",description:"Restaurant equipment, systems and operations"},
-  {id:"mobile",name:"Mobile / In Transit",icon:"🚚",type:"Dynamic",description:"Assets currently moving between locations"}
-];
+let db = null;
+let baseData = null;
 
-const modules = {
-  homeview:{title:"HomeView",icon:"⌂",subtitle:"Property systems, buildings and recurring home care.",cards:[["Systems","HVAC, plumbing, electrical and solar"],["Spaces","Main house, garage, Barndo and outdoor areas"],["Maintenance","Recurring property tasks and service history"]]},
-  powerview:{title:"PowerView",icon:"ϟ",subtitle:"Real-time home energy intelligence.",cards:[["Live Energy","Solar, battery, load and grid flow"],["Battery Intelligence","State of charge, balance and runtime"],["History","Trends, events and performance"]]},
-  maintenance:{title:"MaintenanceView",icon:"⚒",subtitle:"Fast, reliable records for vehicles and equipment.",cards:[["Assets","Vehicles, equipment and tools"],["Quick Service","Log common work in under 30 seconds"],["Reminders","Upcoming service and issues"]]},
-  network:{title:"NetworkView",icon:"◎",subtitle:"Understand every connection across your property.",cards:[["Network Health","Internet, house, garage and Barndo"],["Devices","Cameras, hubs, computers and smart devices"],["Topology","See what connects where"]]},
-  finance:{title:"FinanceView",icon:"$",subtitle:"Simple business performance and financial insight.",cards:[["Performance","Revenue, expense and profitability"],["Receivables","A/R aging and collection priorities"],["Reports","Clear, shareable management summaries"]]},
-  operations:{title:"OperationsView",icon:"↗",subtitle:"Daily workflows, work activity and performance.",cards:[["Workflows","Jobs, approvals and recurring processes"],["Teams","Assignments, activity and accountability"],["Insights","Turn operating data into action"]]},
-  library:{title:"Library",icon:"▤",subtitle:"Manuals, receipts, photos and documents—connected to assets.",cards:[["Documents","Manuals, warranties and diagrams"],["Receipts","Purchases and service records"],["Media","Photos, videos and reference material"]]},
-  settings:{title:"Settings",icon:"⚙",subtitle:"Personalize EnView and manage the platform.",cards:[["Profile","User and household information"],["Preferences","Notifications, display and defaults"],["Data","Imports, exports and integrations"]]}
+const icons = {
+  vehicle:"🚙", equipment:"🚜", energy:"⚡", network:"◎", home:"⌂", default:"◇"
 };
 
+async function loadCore(){
+  const response = await fetch("assets/data/core.json");
+  baseData = await response.json();
+  const saved = localStorage.getItem(STORAGE_KEY);
+  db = saved ? JSON.parse(saved) : structuredClone(baseData);
+  renderAll();
+}
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  renderAll();
+}
+
+function nextId(prefix, collection){
+  const nums = collection
+    .map(item => item.id)
+    .filter(id => id.startsWith(prefix))
+    .map(id => Number(id.split("-").pop()))
+    .filter(Number.isFinite);
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return `${prefix}-${String(next).padStart(4,"0")}`;
+}
+
+function locationById(id){ return db.locations.find(x => x.id === id); }
+function assetById(id){ return db.assets.find(x => x.id === id); }
+function partById(id){ return db.parts.find(x => x.id === id); }
+
+function locationPath(id){
+  const loc = locationById(id);
+  return loc ? loc.path.join(" → ") : "Location not assigned";
+}
+
+function relationshipTarget(rel){
+  return assetById(rel.targetId)?.name || locationById(rel.targetId)?.name || partById(rel.targetId)?.name || rel.targetId;
+}
+
+function renderAll(){
+  renderStats();
+  renderDashboard();
+  renderAssets();
+  renderLocations();
+  renderParts();
+  renderRelationships();
+  populateForms();
+}
+
+function renderStats(){
+  const relationships = db.assets.reduce((n,a)=>n+(a.relationships?.length||0),0);
+  const stats = [
+    ["Assets", db.assets.length, "Permanent EnView records"],
+    ["Locations", db.locations.length, "Nested location objects"],
+    ["Parts", db.parts.length, "Ordering-ready records"],
+    ["Relationships", relationships, "Connections across the core"]
+  ];
+  document.getElementById("coreStats").innerHTML = stats.map(s=>`
+    <div class="stat-card"><small>${s[0]}</small><strong>${s[1]}</strong><span>${s[2]}</span></div>
+  `).join("");
+}
+
+function compactAsset(a){
+  return `<button class="compact-row" data-open-asset="${a.id}">
+    <span class="compact-icon">${icons[a.category]||icons.default}</span>
+    <span class="compact-copy"><strong>${a.name}</strong><small class="mono">${a.id} · ${locationPath(a.locationId)}</small></span>
+    <span>›</span>
+  </button>`;
+}
+
+function renderDashboard(){
+  document.getElementById("dashboardAssets").innerHTML = db.assets.slice(0,4).map(compactAsset).join("");
+  const rels = db.assets.flatMap(a=>(a.relationships||[]).map(r=>({source:a.name,...r}))).slice(0,5);
+  document.getElementById("dashboardRelationships").innerHTML = rels.map(r=>`
+    <div class="compact-row">
+      <span class="compact-icon">⇄</span>
+      <span class="compact-copy"><strong>${r.source}</strong><small>${r.type.replaceAll("_"," ")} → ${relationshipTarget(r)}</small></span>
+    </div>
+  `).join("");
+  bindAssetLinks();
+}
+
 function assetCard(a){
-  return `<button class="asset-card" data-asset="${a.id}">
-    <div class="asset-head"><span class="asset-icon">${a.icon}</span><span class="health-badge ${a.healthClass}">${a.health}</span></div>
-    <strong class="asset-title">${a.name}</strong>
-    <span class="asset-location">⌖ ${a.location.join(" · ")}</span>
-    <div class="asset-metric"><span>${a.metricLabel}</span><strong>${a.metric}</strong></div>
+  return `<button class="asset-card" data-open-asset="${a.id}">
+    <div class="asset-top">
+      <span class="asset-icon">${icons[a.category]||icons.default}</span>
+      <span class="health ${a.status}">${a.health?.label || a.status}</span>
+    </div>
+    <h3>${a.name}</h3>
+    <span class="asset-id mono">${a.id}</span>
+    <span class="asset-location">⌖ ${locationPath(a.locationId)}</span>
+    <div class="asset-footer"><span>${a.category}</span><strong>${a.relationships?.length||0} links</strong></div>
   </button>`;
 }
-function locationRow(l){
-  const count = assets.filter(a=>a.location[0]===l.name).length;
-  return `<button class="location-row" data-location="${l.id}">
-    <span class="location-row-icon">${l.icon}</span>
-    <span class="location-row-copy"><strong>${l.name}</strong><small>${count} assets</small></span><span class="arrow">›</span>
-  </button>`;
+
+function renderAssets(filter="all"){
+  const list = db.assets.filter(a=>filter==="all" || a.category===filter);
+  document.getElementById("assetGrid").innerHTML = list.map(assetCard).join("");
+  bindAssetLinks();
 }
-function locationCard(l){
-  const count = assets.filter(a=>a.location[0]===l.name).length;
-  return `<button class="location-card" data-location="${l.id}">
-    <div class="location-card-top"><span class="location-card-icon">${l.icon}</span><span class="location-count">${count} assets</span></div>
-    <h3>${l.name}</h3><p>${l.description}</p>
-  </button>`;
-}
-function bindDynamic(){
-  document.querySelectorAll("[data-asset]").forEach(b=>b.onclick=()=>openAsset(b.dataset.asset));
-  document.querySelectorAll("[data-location]").forEach(b=>b.onclick=()=>openLocation(b.dataset.location));
-}
-function render(){
-  document.getElementById("favoriteAssets").innerHTML=assets.filter(a=>a.favorite).map(assetCard).join("");
-  document.getElementById("allAssets").innerHTML=assets.map(assetCard).join("");
-  document.getElementById("dashboardLocations").innerHTML=locations.slice(0,4).map(locationRow).join("");
-  document.getElementById("locationGrid").innerHTML=locations.map(locationCard).join("");
-  bindDynamic();
-}
-function buildModules(){
-  Object.entries(modules).forEach(([key,data])=>{
-    document.getElementById(`page-${key}`).innerHTML=`<div class="placeholder"><div class="placeholder-hero">
-      <div class="placeholder-icon">${data.icon}</div><p class="eyebrow">EnView application</p><h1>${data.title}</h1><p>${data.subtitle}</p>
-      <div class="placeholder-grid">${data.cards.map(c=>`<div class="placeholder-card"><strong>${c[0]}</strong><small>${c[1]}</small></div>`).join("")}</div>
-    </div></div>`;
-  });
-}
-function showPage(name){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-  const page=document.getElementById(`page-${name}`)||document.getElementById("page-dashboard");
-  page.classList.add("active");
-  const nav=document.querySelector(`.nav-item[data-page="${name}"]`); if(nav)nav.classList.add("active");
-  document.getElementById("sidebar").classList.remove("open");
-  window.scrollTo({top:0,behavior:"smooth"});
-}
+
 function openAsset(id){
-  const a=assets.find(x=>x.id===id); if(!a)return;
-  document.getElementById("assetDetail").innerHTML=`
+  const a = assetById(id);
+  if(!a) return;
+  const rels = a.relationships || [];
+  const specs = Object.entries(a.specifications || {});
+  const services = a.serviceHistory || [];
+  document.getElementById("assetDetail").innerHTML = `
     <div class="detail-hero">
       <div class="detail-top">
-        <div class="detail-identity"><div class="detail-icon">${a.icon}</div><div>
-          <p class="eyebrow">${a.type}</p><h1>${a.name}</h1><div class="detail-meta">${a.secondary}</div>
-          <div class="detail-location">⌖ ${a.location.join(" → ")}</div>
-        </div></div>
-        <span class="health-badge ${a.healthClass}">${a.health}</span>
+        <div class="detail-identity">
+          <div class="detail-icon">${icons[a.category]||icons.default}</div>
+          <div><p class="eyebrow">${a.category} · ${a.subtype||"asset"}</p><h1>${a.name}</h1>
+          <div class="detail-id">${a.id}</div><div class="path">⌖ ${locationPath(a.locationId)}</div></div>
+        </div>
+        <span class="health ${a.status}">${a.health?.label || a.status}</span>
       </div>
       <div class="detail-grid">
-        <div class="detail-stat"><small>${a.metricLabel}</small><strong>${a.metric}</strong></div>
-        <div class="detail-stat"><small>Location</small><strong>${a.location[a.location.length-1]}</strong></div>
-        <div class="detail-stat"><small>Open issues</small><strong>${a.healthClass==="red"?"1":"0"}</strong></div>
-        <div class="detail-stat"><small>Documents</small><strong>3</strong></div>
+        <div class="detail-stat"><small>Permanent ID</small><strong class="mono">${a.id}</strong></div>
+        <div class="detail-stat"><small>Location ID</small><strong class="mono">${a.locationId}</strong></div>
+        <div class="detail-stat"><small>Relationships</small><strong>${rels.length}</strong></div>
+        <div class="detail-stat"><small>Open issues</small><strong>${a.health?.openIssueCount ?? 0}</strong></div>
       </div>
     </div>
     <div class="detail-panels">
-      <div class="detail-panel">
-        <div class="section-title-row"><div><p class="eyebrow">Fast capture</p><h2>Quick actions</h2></div></div>
-        <div class="quick-actions-row">
-          <button class="quick-action-tile"><span>⚒</span><strong>Log service</strong></button>
-          <button class="quick-action-tile"><span>⌖</span><strong>Move asset</strong></button>
-          <button class="quick-action-tile"><span>▧</span><strong>Add photo</strong></button>
-          <button class="quick-action-tile"><span>▤</span><strong>Add receipt</strong></button>
-          <button class="quick-action-tile"><span>◷</span><strong>Reminder</strong></button>
-          <button class="quick-action-tile"><span>!</span><strong>Report issue</strong></button>
-        </div>
-      </div>
-      <div class="detail-panel">
-        <p class="eyebrow">Location hierarchy</p><h2>Where it lives</h2>
-        <div class="location-path">${a.location.map(x=>`<span class="crumb">${x}</span>`).join("")}</div>
-        <button class="text-button">View location history</button>
-      </div>
-      <div class="detail-panel">
-        <p class="eyebrow">History</p><h2>Recent activity</h2>
-        <div class="history-item"><strong>Record updated</strong><br><small>Yesterday</small></div>
-        <div class="history-item"><strong>Location confirmed</strong><br><small>June 2026</small></div>
-        <div class="history-item"><strong>Asset added to EnView</strong><br><small>Initial import</small></div>
-      </div>
-      <div class="detail-panel">
-        <p class="eyebrow">Connected knowledge</p><h2>Asset intelligence</h2>
-        <div class="history-item"><strong>Specifications</strong><br><small>Parts, fluids, model and serial information</small></div>
-        <div class="history-item"><strong>Documents</strong><br><small>Manuals, receipts and photos</small></div>
-        <div class="history-item"><strong>Relationships</strong><br><small>Connected systems and related assets</small></div>
-      </div>
-    </div>`;
+      <section class="detail-panel"><p class="eyebrow">Identity</p><h2>Asset record</h2>
+        ${Object.entries(a.identity||{}).map(([k,v])=>`<div class="record-row"><small>${label(k)}</small><br><strong>${v||"Not entered"}</strong></div>`).join("")}
+      </section>
+      <section class="detail-panel"><p class="eyebrow">Relationships</p><h2>Connected objects</h2>
+        ${rels.length ? rels.map(r=>`<div class="record-row"><small>${r.type.replaceAll("_"," ")}</small><br><strong>${relationshipTarget(r)}</strong> <span class="mono">(${r.targetId})</span></div>`).join("") : `<p class="body-copy">No relationships yet.</p>`}
+      </section>
+      <section class="detail-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>
+        ${specs.length ? specs.map(([k,v])=>`<div class="record-row"><small>${label(k)}</small><br><strong>${v}</strong></div>`).join("") : `<p class="body-copy">No specifications entered.</p>`}
+      </section>
+      <section class="detail-panel"><p class="eyebrow">History</p><h2>Service records</h2>
+        ${services.length ? services.map(s=>`<div class="record-row"><small>${s.date}${s.mileage?` · ${s.mileage.toLocaleString()} mi`:""}</small><br><strong>${s.summary}</strong></div>`).join("") : `<p class="body-copy">No service history entered.</p>`}
+      </section>
+    </div>
+  `;
   showPage("asset-detail");
 }
-function openLocation(id){
-  const l=locations.find(x=>x.id===id); if(!l)return;
-  const here=assets.filter(a=>a.location[0]===l.name);
-  document.getElementById("locationDetail").innerHTML=`
-    <div class="detail-hero">
-      <div class="detail-top"><div class="detail-identity"><div class="detail-icon">${l.icon}</div><div>
-        <p class="eyebrow">${l.type}</p><h1>${l.name}</h1><div class="detail-meta">${l.description}</div>
-      </div></div><span class="health-badge green">${here.length} assets</span></div>
-    </div>
-    <div class="section-title-row"><div><p class="eyebrow">At this location</p><h2>Assets</h2></div></div>
-    <div class="asset-grid large">${here.length?here.map(assetCard).join(""):`<div class="card"><strong>No assets yet</strong><p class="subhead">Add or move an asset to this location.</p></div>`}</div>`;
-  showPage("location-detail"); bindDynamic();
+
+function label(k){ return k.replace(/([A-Z])/g," $1").replace(/^./,m=>m.toUpperCase()); }
+
+function bindAssetLinks(){
+  document.querySelectorAll("[data-open-asset]").forEach(b=>b.onclick=()=>openAsset(b.dataset.openAsset));
 }
-buildModules(); render();
 
-document.querySelectorAll("[data-page]").forEach(btn=>btn.addEventListener("click",()=>showPage(btn.dataset.page)));
-document.querySelectorAll("[data-page-target]").forEach(btn=>btn.addEventListener("click",()=>showPage(btn.dataset.pageTarget)));
-document.getElementById("assetBack").onclick=()=>showPage("assets");
-document.getElementById("locationBack").onclick=()=>showPage("locations");
+function renderLocations(){
+  const levels = new Map();
+  db.locations.forEach(l=>{
+    let depth = 0, p = l.parentId;
+    while(p){ depth++; p = locationById(p)?.parentId; }
+    levels.set(l.id, depth);
+  });
+  document.getElementById("locationTree").innerHTML = db.locations.map(l=>{
+    const count = db.assets.filter(a=>a.locationId===l.id).length;
+    const cls = levels.get(l.id)===1?"child":levels.get(l.id)>1?"grandchild":"";
+    return `<div class="location-node ${cls}">
+      <span class="location-icon">⌖</span>
+      <span class="location-copy"><strong>${l.name}</strong><small class="mono">${l.id} · ${l.type}</small><small>${l.path.join(" → ")}</small></span>
+      <strong>${count} assets</strong>
+    </div>`;
+  }).join("");
+}
 
-document.querySelectorAll(".filter-chip").forEach(btn=>btn.onclick=()=>{
-  document.querySelectorAll(".filter-chip").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
-  const f=btn.dataset.filter;document.getElementById("allAssets").innerHTML=assets.filter(a=>f==="all"||a.type===f).map(assetCard).join("");bindDynamic();
+function renderParts(){
+  document.getElementById("partsGrid").innerHTML = db.parts.map(p=>{
+    const compatible = p.compatibleAssetIds.map(id=>assetById(id)?.name||id).join(", ");
+    return `<article class="part-card">
+      <div class="part-head"><div><p class="eyebrow">Part record</p><h2>${p.name}</h2><div class="asset-id mono">${p.id}</div></div>
+      <span class="verified">${p.verifiedFitment?"Verified":"Fitment unverified"}</span></div>
+      <div class="part-meta">
+        <div><small>Part number</small><strong>${p.partNumber||"Not entered"}</strong></div>
+        <div><small>On hand</small><strong>${p.inventory?.quantityOnHand??0}</strong></div>
+        <div><small>Compatible with</small><strong>${compatible||"Not assigned"}</strong></div>
+        <div><small>Preferred retailer</small><strong>${p.preferredRetailer||"Not selected"}</strong></div>
+      </div>
+      <div class="retailer-row">
+        ${p.retailerLinks?.amazonSearch?`<a class="retailer-link" href="${p.retailerLinks.amazonSearch}" target="_blank" rel="noopener">Search Amazon</a>`:""}
+        ${p.retailerLinks?.walmartSearch?`<a class="retailer-link" href="${p.retailerLinks.walmartSearch}" target="_blank" rel="noopener">Search Walmart</a>`:""}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function renderRelationships(){
+  const rels = db.assets.flatMap(a=>(a.relationships||[]).map(r=>({sourceId:a.id,source:a.name,...r})));
+  document.getElementById("relationshipBoard").innerHTML = rels.map(r=>`
+    <article class="relationship-card">
+      <div class="relationship-line">
+        <span class="relationship-node">${r.source}</span>
+        <span class="relationship-type">${r.type.replaceAll("_"," ")}</span>
+        <span class="relationship-node">${relationshipTarget(r)}</span>
+      </div>
+      <p class="body-copy mono">${r.sourceId} → ${r.targetId}</p>
+    </article>
+  `).join("");
+}
+
+function populateForms(){
+  const locationOptions = db.locations.map(l=>`<option value="${l.id}">${l.path.join(" → ")}</option>`).join("");
+  document.getElementById("assetLocation").innerHTML = locationOptions;
+  document.getElementById("locationParent").innerHTML = `<option value="">Top-level location</option>${locationOptions}`;
+  document.getElementById("partAsset").innerHTML = db.assets.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");
+}
+
+function showPage(name){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById(`page-${name}`)?.classList.add("active");
+  document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add("active");
+  document.getElementById("sidebar").classList.remove("open");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+function closeModals(){ document.querySelectorAll(".modal-backdrop").forEach(m=>m.classList.remove("open")); }
+
+document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageTarget));
+document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeModals);
+document.querySelectorAll(".modal-backdrop").forEach(m=>m.onclick=e=>{if(e.target===m)closeModals();});
+
+document.querySelectorAll("[data-asset-filter]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-asset-filter]").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); renderAssets(b.dataset.assetFilter);
 });
 
-document.getElementById("todayDate").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date());
-document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
+document.getElementById("addAssetBtn").onclick=()=>openModal("assetModal");
+document.getElementById("addLocationBtn").onclick=()=>openModal("locationModal");
+document.getElementById("addPartBtn").onclick=()=>openModal("partModal");
 
-const quick=document.getElementById("quickModal"), locModal=document.getElementById("locationModal");
-document.querySelectorAll("[data-open-quick]").forEach(b=>b.onclick=()=>quick.classList.add("open"));
-document.querySelectorAll("[data-close-modal]").forEach(b=>b.onclick=()=>quick.classList.remove("open"));
-document.querySelectorAll("[data-open-add-location]").forEach(b=>b.onclick=()=>locModal.classList.add("open"));
-document.querySelectorAll("[data-close-location]").forEach(b=>b.onclick=()=>locModal.classList.remove("open"));
-[quick,locModal].forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove("open")});
+document.getElementById("assetForm").onsubmit=e=>{
+  e.preventDefault();
+  const category=document.getElementById("assetCategory").value;
+  const prefix={vehicle:"ENV-VEH",equipment:"ENV-EQP",energy:"ENV-ENG",network:"ENV-NET",home:"ENV-HME"}[category]||"ENV-AST";
+  const id=nextId(prefix,db.assets);
+  const statusValue=document.getElementById("assetHealth").value;
+  db.assets.push({
+    id,name:document.getElementById("assetName").value.trim(),category,subtype:"",
+    status:statusValue,locationId:document.getElementById("assetLocation").value,tags:[],
+    identity:{},metrics:{},health:{label:statusValue==="healthy"?"Healthy":statusValue==="attention"?"Attention Soon":"Needs Service",openIssueCount:statusValue==="healthy"?0:1,nextAction:""},
+    relationships:[{type:"located_at",targetId:document.getElementById("assetLocation").value}],
+    specifications:{},serviceHistory:[],documents:[],photos:[]
+  });
+  save(); closeModals(); e.target.reset(); showPage("assets");
+};
 
-const input=document.getElementById("globalSearch"), results=document.getElementById("searchResults");
-function search(q){
-  if(!q){results.classList.remove("open");return}
-  const assetMatches=assets.filter(a=>[a.name,a.type,a.location.join(" "),a.metric,a.secondary].join(" ").toLowerCase().includes(q.toLowerCase())).map(a=>({title:a.name,sub:`Asset · ${a.location.join(" · ")}`,action:()=>openAsset(a.id)}));
-  const locationMatches=locations.filter(l=>[l.name,l.type,l.description].join(" ").toLowerCase().includes(q.toLowerCase())).map(l=>({title:l.name,sub:`Location · ${l.type}`,action:()=>openLocation(l.id)}));
-  const matches=[...assetMatches,...locationMatches].slice(0,8);
-  results.innerHTML=matches.length?matches.map((m,i)=>`<button class="search-result" data-search-index="${i}"><span><strong>${m.title}</strong><br><small>${m.sub}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;
-  results.classList.add("open");
-  results.querySelectorAll("[data-search-index]").forEach(b=>b.onclick=()=>{matches[Number(b.dataset.searchIndex)].action();results.classList.remove("open");input.value=""});
+document.getElementById("locationForm").onsubmit=e=>{
+  e.preventDefault();
+  const parentId=document.getElementById("locationParent").value||null;
+  const parent=parentId?locationById(parentId):null;
+  const name=document.getElementById("locationName").value.trim();
+  db.locations.push({
+    id:nextId("ENV-LOC",db.locations),name,type:document.getElementById("locationType").value,parentId,
+    path:parent?[...parent.path,name]:[name]
+  });
+  save(); closeModals(); e.target.reset(); showPage("locations");
+};
+
+document.getElementById("partForm").onsubmit=e=>{
+  e.preventDefault();
+  const name=document.getElementById("partName").value.trim();
+  const number=document.getElementById("partNumber").value.trim();
+  const query=encodeURIComponent([number,name].filter(Boolean).join(" "));
+  db.parts.push({
+    id:nextId("ENV-PART",db.parts),name,partNumber:number,brand:"",verifiedFitment:false,
+    compatibleAssetIds:[document.getElementById("partAsset").value],
+    preferredRetailer:document.getElementById("partRetailer").value,
+    retailerLinks:{amazonSearch:`https://www.amazon.com/s?k=${query}`,walmartSearch:`https://www.walmart.com/search?q=${query}`},
+    inventory:{quantityOnHand:0,locationId:null}
+  });
+  save(); closeModals(); e.target.reset(); showPage("parts");
+};
+
+document.getElementById("resetDemo").onclick=()=>{
+  if(confirm("Reset EnView 0.5 to the original demo data?")){
+    db=structuredClone(baseData); save(); showPage("dashboard");
+  }
+};
+
+const placeholders={
+  maintenance:["⚒","MaintenanceView","Uses Core assets, parts, locations and service history without creating a separate database."],
+  powerview:["ϟ","PowerView","Live energy data connects to the same battery and inverter asset records."],
+  network:["◎","NetworkView","Network status, IP addresses and firmware connect to permanent device assets."],
+  library:["▤","Library","Documents, photos and receipts attach to asset IDs instead of becoming disconnected files."],
+  settings:["⚙","Core Settings","Future schema tools, imports, exports, user accounts and integrations live here."]
+};
+Object.entries(placeholders).forEach(([key,p])=>{
+  document.getElementById(`page-${key}`).innerHTML=`<div class="placeholder"><div class="placeholder-icon">${p[0]}</div><p class="eyebrow">Connected application</p><h1>${p[1]}</h1><p>${p[2]}</p></div>`;
+});
+
+const searchInput=document.getElementById("globalSearch");
+const searchResults=document.getElementById("searchResults");
+function doSearch(q){
+  if(!q){searchResults.classList.remove("open");return;}
+  const needle=q.toLowerCase();
+  const hits=[
+    ...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(needle)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),
+    ...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(needle)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>showPage("locations")})),
+    ...db.parts.filter(p=>JSON.stringify(p).toLowerCase().includes(needle)).map(p=>({title:p.name,sub:`Part · ${p.id}`,go:()=>showPage("parts")}))
+  ].slice(0,9);
+  searchResults.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${h.title}</strong><br><small>${h.sub}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;
+  searchResults.classList.add("open");
+  searchResults.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();searchResults.classList.remove("open");searchInput.value="";});
 }
-input.oninput=e=>search(e.target.value.trim());
-document.addEventListener("click",e=>{if(!results.contains(e.target)&&e.target!==input)results.classList.remove("open")});
-document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();input.focus()}if(e.key==="Escape"){quick.classList.remove("open");locModal.classList.remove("open");results.classList.remove("open")}});
+searchInput.oninput=e=>doSearch(e.target.value.trim());
+document.addEventListener("click",e=>{if(!searchResults.contains(e.target)&&e.target!==searchInput)searchResults.classList.remove("open");});
+document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();searchInput.focus();}if(e.key==="Escape"){closeModals();searchResults.classList.remove("open");}});
+
+loadCore();
