@@ -1,6 +1,5 @@
 {
-  "schemaVersion": "0.5.0",
-  "generatedAt": "2026-07-23",
+  "schemaVersion": "0.6.0",
   "locations": [
     {
       "id": "ENV-LOC-0001",
@@ -9,13 +8,12 @@
       "parentId": null,
       "path": [
         "Main House"
-      ],
-      "notes": "Primary residence and attached garage."
+      ]
     },
     {
       "id": "ENV-LOC-0002",
       "name": "Garage",
-      "type": "building-area",
+      "type": "area",
       "parentId": "ENV-LOC-0001",
       "path": [
         "Main House",
@@ -24,8 +22,19 @@
     },
     {
       "id": "ENV-LOC-0003",
+      "name": "Bay 1",
+      "type": "parking",
+      "parentId": "ENV-LOC-0002",
+      "path": [
+        "Main House",
+        "Garage",
+        "Bay 1"
+      ]
+    },
+    {
+      "id": "ENV-LOC-0004",
       "name": "Bay 2",
-      "type": "parking-bay",
+      "type": "parking",
       "parentId": "ENV-LOC-0002",
       "path": [
         "Main House",
@@ -34,9 +43,9 @@
       ]
     },
     {
-      "id": "ENV-LOC-0004",
+      "id": "ENV-LOC-0005",
       "name": "Solar Wall",
-      "type": "equipment-zone",
+      "type": "zone",
       "parentId": "ENV-LOC-0002",
       "path": [
         "Main House",
@@ -45,7 +54,17 @@
       ]
     },
     {
-      "id": "ENV-LOC-0005",
+      "id": "ENV-LOC-0006",
+      "name": "Hallway Mechanical Closet",
+      "type": "room",
+      "parentId": "ENV-LOC-0001",
+      "path": [
+        "Main House",
+        "Hallway Mechanical Closet"
+      ]
+    },
+    {
+      "id": "ENV-LOC-0007",
       "name": "Barndo",
       "type": "property",
       "parentId": null,
@@ -54,13 +73,23 @@
       ]
     },
     {
-      "id": "ENV-LOC-0006",
+      "id": "ENV-LOC-0008",
       "name": "Workshop",
-      "type": "building-area",
-      "parentId": "ENV-LOC-0005",
+      "type": "area",
+      "parentId": "ENV-LOC-0007",
       "path": [
         "Barndo",
         "Workshop"
+      ]
+    },
+    {
+      "id": "ENV-LOC-0009",
+      "name": "North Exterior Wall",
+      "type": "zone",
+      "parentId": "ENV-LOC-0007",
+      "path": [
+        "Barndo",
+        "North Exterior Wall"
       ]
     }
   ],
@@ -68,189 +97,256 @@
     {
       "id": "ENV-VEH-0001",
       "name": "2021 Volkswagen Tiguan",
+      "shortName": "Tiguan",
       "category": "vehicle",
-      "subtype": "SUV",
+      "icon": "\ud83d\ude99",
       "status": "healthy",
-      "locationId": "ENV-LOC-0003",
-      "tags": [
-        "volkswagen",
-        "tiguan",
-        "daily-driver"
-      ],
+      "healthLabel": "Healthy",
+      "favorite": true,
+      "locationId": "ENV-LOC-0004",
+      "summary": "104,150 miles",
+      "nextAction": "Oil service due in approximately 650 miles",
       "identity": {
-        "year": 2021,
+        "year": "2021",
         "make": "Volkswagen",
         "model": "Tiguan",
         "trim": "SE",
         "engine": "2.0L Turbo",
         "drive": "FWD",
-        "vin": ""
+        "vin": "Not entered"
       },
-      "metrics": {
-        "mileage": 104150,
-        "mileageUnit": "mi"
-      },
-      "health": {
-        "label": "Healthy",
-        "openIssueCount": 0,
-        "nextAction": "Oil service due in approximately 650 miles"
-      },
-      "relationships": [
+      "metrics": [
         {
-          "type": "located_at",
-          "targetId": "ENV-LOC-0003"
+          "label": "Mileage",
+          "value": "104,150 mi"
         },
         {
-          "type": "uses_part",
-          "targetId": "ENV-PART-0001"
+          "label": "Next oil",
+          "value": "650 mi"
         },
         {
-          "type": "uses_part",
-          "targetId": "ENV-PART-0002"
-        }
-      ],
-      "specifications": {
-        "engineOil": "0W-20 meeting VW 508 00",
-        "oilCapacity": "Verify by engine code and dipstick",
-        "lugBoltSocket": "17 mm",
-        "notes": "Confirm exact specifications against VIN and owner's manual."
-      },
-      "serviceHistory": [
+          "label": "Open issues",
+          "value": "0"
+        },
         {
-          "id": "ENV-SVC-0001",
-          "date": "2026-07-21",
-          "mileage": 103000,
-          "type": "inspection",
-          "summary": "Front brake inspection and oil-service preparation",
-          "cost": null
+          "label": "Documents",
+          "value": "3"
         }
       ],
-      "documents": [],
-      "photos": []
+      "specifications": [
+        {
+          "label": "Engine oil",
+          "value": "0W-20 meeting VW 508 00"
+        },
+        {
+          "label": "Oil filter",
+          "value": "FRAM FE11784 (fitment to verify)"
+        },
+        {
+          "label": "Lug-bolt socket",
+          "value": "17 mm"
+        },
+        {
+          "label": "Drive",
+          "value": "Front-wheel drive"
+        }
+      ],
+      "history": [
+        {
+          "date": "Jul 21, 2026",
+          "title": "Brake inspection and oil-service preparation",
+          "detail": "Mileage recorded near 103,000 miles"
+        },
+        {
+          "date": "Jul 2026",
+          "title": "Engine air filter reviewed",
+          "detail": "Replacement specification recorded"
+        },
+        {
+          "date": "Initial import",
+          "title": "Vehicle added to EnView",
+          "detail": "Imported from maintenance notes"
+        }
+      ],
+      "parts": [
+        "ENV-PART-0001",
+        "ENV-PART-0002"
+      ]
+    },
+    {
+      "id": "ENV-VEH-0002",
+      "name": "2022 Ram 1500",
+      "shortName": "Ram",
+      "category": "vehicle",
+      "icon": "\ud83d\udefb",
+      "status": "attention",
+      "healthLabel": "Attention Soon",
+      "favorite": true,
+      "locationId": "ENV-LOC-0003",
+      "summary": "Oil service approaching",
+      "nextAction": "Plan oil service within approximately 650 miles",
+      "metrics": [
+        {
+          "label": "Next service",
+          "value": "650 mi"
+        },
+        {
+          "label": "Open issues",
+          "value": "1"
+        },
+        {
+          "label": "Location",
+          "value": "Bay 1"
+        },
+        {
+          "label": "Documents",
+          "value": "2"
+        }
+      ],
+      "identity": {},
+      "specifications": [],
+      "history": [],
+      "parts": []
     },
     {
       "id": "ENV-ENG-0001",
       "name": "Harris Battery",
+      "shortName": "Battery",
       "category": "energy",
-      "subtype": "LiFePO4 battery",
+      "icon": "\ud83d\udd0b",
       "status": "healthy",
-      "locationId": "ENV-LOC-0004",
-      "tags": [
-        "battery",
-        "solar",
-        "harris",
-        "powerview"
-      ],
-      "identity": {
-        "manufacturer": "Harris",
-        "model": "314Ah Wall-Mount",
-        "serialNumber": ""
-      },
-      "metrics": {
-        "soc": 31.4,
-        "packVoltage": 52.232,
-        "current": -14.57
-      },
-      "health": {
-        "label": "Healthy",
-        "openIssueCount": 0,
-        "nextAction": "Continue verifying SOC source accuracy"
-      },
-      "relationships": [
+      "healthLabel": "Healthy",
+      "favorite": true,
+      "locationId": "ENV-LOC-0005",
+      "summary": "PowerView telemetry available",
+      "nextAction": "Continue SOC source verification",
+      "metrics": [
         {
-          "type": "located_at",
-          "targetId": "ENV-LOC-0004"
+          "label": "SOC",
+          "value": "31.4%"
         },
         {
-          "type": "connected_to",
-          "targetId": "ENV-ENG-0002"
+          "label": "Voltage",
+          "value": "52.232 V"
+        },
+        {
+          "label": "Status",
+          "value": "Online"
+        },
+        {
+          "label": "Open issues",
+          "value": "0"
         }
       ],
-      "specifications": {
-        "chemistry": "LiFePO4",
-        "nominalCapacity": "314Ah",
-        "estimatedEnergy": "Approximately 16 kWh"
-      },
-      "serviceHistory": [],
-      "documents": [],
-      "photos": []
+      "identity": {},
+      "specifications": [],
+      "history": [],
+      "parts": []
     },
     {
-      "id": "ENV-ENG-0002",
-      "name": "Sol-Ark 12KP",
-      "category": "energy",
-      "subtype": "inverter",
-      "status": "healthy",
-      "locationId": "ENV-LOC-0004",
-      "tags": [
-        "solar",
-        "inverter",
-        "sol-ark",
-        "powerview"
-      ],
-      "identity": {
-        "manufacturer": "Sol-Ark",
-        "model": "12KP",
-        "serialNumber": ""
-      },
-      "metrics": {
-        "connection": "online"
-      },
-      "health": {
-        "label": "Healthy",
-        "openIssueCount": 0,
-        "nextAction": "No action required"
-      },
-      "relationships": [
+      "id": "ENV-HME-0001",
+      "name": "Main House HVAC",
+      "shortName": "HVAC",
+      "category": "home",
+      "icon": "\u2744\ufe0f",
+      "status": "attention",
+      "healthLabel": "Attention Soon",
+      "favorite": true,
+      "locationId": "ENV-LOC-0006",
+      "summary": "Filter due next week",
+      "nextAction": "Replace 20 \u00d7 25 \u00d7 4 filter",
+      "metrics": [
         {
-          "type": "located_at",
-          "targetId": "ENV-LOC-0004"
+          "label": "Filter",
+          "value": "20 \u00d7 25 \u00d7 4"
         },
         {
-          "type": "connected_to",
-          "targetId": "ENV-ENG-0001"
+          "label": "Due",
+          "value": "Next week"
+        },
+        {
+          "label": "Status",
+          "value": "Running"
+        },
+        {
+          "label": "Open issues",
+          "value": "1"
         }
       ],
-      "specifications": {},
-      "serviceHistory": [],
-      "documents": [],
-      "photos": []
+      "identity": {},
+      "specifications": [],
+      "history": [],
+      "parts": []
+    },
+    {
+      "id": "ENV-NET-0001",
+      "name": "Barndo Exterior Camera",
+      "shortName": "Barndo Cam",
+      "category": "network",
+      "icon": "\ud83d\udcf7",
+      "status": "service",
+      "healthLabel": "Offline",
+      "favorite": true,
+      "locationId": "ENV-LOC-0009",
+      "summary": "Camera currently offline",
+      "nextAction": "Reboot and confirm network connection",
+      "metrics": [
+        {
+          "label": "Status",
+          "value": "Offline"
+        },
+        {
+          "label": "Location",
+          "value": "North wall"
+        },
+        {
+          "label": "Last seen",
+          "value": "2 days ago"
+        },
+        {
+          "label": "Open issues",
+          "value": "1"
+        }
+      ],
+      "identity": {},
+      "specifications": [],
+      "history": [],
+      "parts": []
     },
     {
       "id": "ENV-EQP-0001",
       "name": "Husqvarna Z254F",
+      "shortName": "Husqvarna",
       "category": "equipment",
-      "subtype": "zero-turn mower",
+      "icon": "\ud83d\ude9c",
       "status": "healthy",
-      "locationId": "ENV-LOC-0006",
-      "tags": [
-        "mower",
-        "husqvarna",
-        "lawn"
-      ],
-      "identity": {
-        "manufacturer": "Husqvarna",
-        "model": "Z254F",
-        "serialNumber": ""
-      },
-      "metrics": {
-        "hours": 185
-      },
-      "health": {
-        "label": "Healthy",
-        "openIssueCount": 0,
-        "nextAction": "Blade inspection upcoming"
-      },
-      "relationships": [
+      "healthLabel": "Healthy",
+      "favorite": true,
+      "locationId": "ENV-LOC-0008",
+      "summary": "185 hours",
+      "nextAction": "Blade inspection upcoming",
+      "metrics": [
         {
-          "type": "located_at",
-          "targetId": "ENV-LOC-0006"
+          "label": "Hours",
+          "value": "185"
+        },
+        {
+          "label": "Status",
+          "value": "Ready"
+        },
+        {
+          "label": "Open issues",
+          "value": "0"
+        },
+        {
+          "label": "Location",
+          "value": "Workshop"
         }
       ],
-      "specifications": {},
-      "serviceHistory": [],
-      "documents": [],
-      "photos": []
+      "identity": {},
+      "specifications": [],
+      "history": [],
+      "parts": []
     }
   ],
   "parts": [
@@ -264,13 +360,9 @@
         "ENV-VEH-0001"
       ],
       "preferredRetailer": "Amazon",
-      "retailerLinks": {
-        "amazonSearch": "https://www.amazon.com/s?k=FRAM+FE11784",
-        "walmartSearch": "https://www.walmart.com/search?q=FRAM%20FE11784"
-      },
-      "inventory": {
-        "quantityOnHand": 0,
-        "locationId": "ENV-LOC-0002"
+      "links": {
+        "Amazon": "https://www.amazon.com/s?k=FRAM+FE11784",
+        "Walmart": "https://www.walmart.com/search?q=FRAM%20FE11784"
       }
     },
     {
@@ -283,23 +375,10 @@
         "ENV-VEH-0001"
       ],
       "preferredRetailer": "Amazon",
-      "retailerLinks": {
-        "amazonSearch": "https://www.amazon.com/s?k=VW+508+00+0W-20+engine+oil",
-        "walmartSearch": "https://www.walmart.com/search?q=VW%20508%2000%200W-20%20engine%20oil"
-      },
-      "inventory": {
-        "quantityOnHand": 0,
-        "locationId": "ENV-LOC-0002"
+      "links": {
+        "Amazon": "https://www.amazon.com/s?k=VW+508+00+0W-20+engine+oil",
+        "Walmart": "https://www.walmart.com/search?q=VW%20508%2000%200W-20%20engine%20oil"
       }
     }
-  ],
-  "relationshipTypes": [
-    "located_at",
-    "connected_to",
-    "uses_part",
-    "contains",
-    "serves",
-    "monitored_by",
-    "replaced_by"
   ]
 }

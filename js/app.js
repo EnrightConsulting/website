@@ -1,214 +1,109 @@
-const STORAGE_KEY = "enview-core-v0.5";
+const STORAGE_KEY="enview-v0.6";
+let db=null, baseData=null, lastListPage="dashboard";
 
-let db = null;
-let baseData = null;
-
-const icons = {
-  vehicle:"🚙", equipment:"🚜", energy:"⚡", network:"◎", home:"⌂", default:"◇"
+const modulePages={
+  homeview:["⌂","HomeView","Property systems, buildings and recurring home care."],
+  powerview:["ϟ","PowerView","Live energy data connected to the Harris battery and Sol-Ark assets."],
+  maintenance:["⚒","MaintenanceView","Vehicles, equipment, parts, service history and fast maintenance logging."],
+  network:["◎","NetworkView","Network devices, health, locations and documentation."],
+  finance:["$","FinanceView","Simple business performance and financial insight."],
+  operations:["↗","OperationsView","Daily workflows, activity and performance."],
+  library:["▤","Library","Manuals, receipts, photos and documents attached to permanent asset IDs."],
+  settings:["⚙","Settings","Profiles, preferences, integrations and future data administration."]
 };
 
-async function loadCore(){
-  const response = await fetch("assets/data/core.json");
-  baseData = await response.json();
-  const saved = localStorage.getItem(STORAGE_KEY);
-  db = saved ? JSON.parse(saved) : structuredClone(baseData);
+async function init(){
+  const res=await fetch("assets/data/core.json");
+  baseData=await res.json();
+  const saved=localStorage.getItem(STORAGE_KEY);
+  db=saved?JSON.parse(saved):structuredClone(baseData);
+  buildPlaceholders();
   renderAll();
 }
 
-function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  renderAll();
+function buildPlaceholders(){
+  Object.entries(modulePages).forEach(([key,p])=>{
+    document.getElementById(`page-${key}`).innerHTML=`<div class="placeholder"><div class="placeholder-icon">${p[0]}</div><p class="eyebrow">Connected application</p><h1>${p[1]}</h1><p>${p[2]}</p></div>`;
+  });
 }
 
-function nextId(prefix, collection){
-  const nums = collection
-    .map(item => item.id)
-    .filter(id => id.startsWith(prefix))
-    .map(id => Number(id.split("-").pop()))
-    .filter(Number.isFinite);
-  const next = (nums.length ? Math.max(...nums) : 0) + 1;
-  return `${prefix}-${String(next).padStart(4,"0")}`;
-}
+function loc(id){return db.locations.find(x=>x.id===id)}
+function asset(id){return db.assets.find(x=>x.id===id)}
+function path(id){return loc(id)?.path.join(" · ")||"Location not assigned"}
+function healthClass(a){return a.status}
+function statusDot(a){return `<span class="status-dot ${healthClass(a)}"></span>`}
 
-function locationById(id){ return db.locations.find(x => x.id === id); }
-function assetById(id){ return db.assets.find(x => x.id === id); }
-function partById(id){ return db.parts.find(x => x.id === id); }
-
-function locationPath(id){
-  const loc = locationById(id);
-  return loc ? loc.path.join(" → ") : "Location not assigned";
-}
-
-function relationshipTarget(rel){
-  return assetById(rel.targetId)?.name || locationById(rel.targetId)?.name || partById(rel.targetId)?.name || rel.targetId;
+function assetCard(a){
+  const metric=a.metrics?.[0]||{label:"Status",value:a.summary};
+  return `<button class="asset-card" data-open-asset="${a.id}">
+    <div class="asset-head"><span class="asset-icon">${a.icon}</span><span class="health ${healthClass(a)}">${a.healthLabel}</span></div>
+    <h3>${a.shortName||a.name}</h3>
+    <div class="location">⌖ ${path(a.locationId)}</div>
+    <div class="metric"><span>${metric.label}</span><strong>${metric.value}</strong></div>
+  </button>`;
 }
 
 function renderAll(){
-  renderStats();
-  renderDashboard();
-  renderAssets();
+  const priorities=db.assets.filter(a=>a.status!=="healthy").slice(0,4);
+  document.getElementById("priorityGrid").innerHTML=priorities.map(a=>`<button class="priority-item" data-open-asset="${a.id}">${statusDot(a)}<span class="priority-copy"><strong>${a.nextAction}</strong><small>${a.shortName} · ${path(a.locationId)}</small></span><span>›</span></button>`).join("");
+  const favs=db.assets.filter(a=>a.favorite);
+  document.getElementById("favoriteGrid").innerHTML=favs.map(assetCard).join("");
+  document.getElementById("favoritesPageGrid").innerHTML=favs.map(assetCard).join("");
+  document.getElementById("allAssetGrid").innerHTML=db.assets.map(assetCard).join("");
   renderLocations();
-  renderParts();
-  renderRelationships();
-  populateForms();
-}
-
-function renderStats(){
-  const relationships = db.assets.reduce((n,a)=>n+(a.relationships?.length||0),0);
-  const stats = [
-    ["Assets", db.assets.length, "Permanent EnView records"],
-    ["Locations", db.locations.length, "Nested location objects"],
-    ["Parts", db.parts.length, "Ordering-ready records"],
-    ["Relationships", relationships, "Connections across the core"]
-  ];
-  document.getElementById("coreStats").innerHTML = stats.map(s=>`
-    <div class="stat-card"><small>${s[0]}</small><strong>${s[1]}</strong><span>${s[2]}</span></div>
-  `).join("");
-}
-
-function compactAsset(a){
-  return `<button class="compact-row" data-open-asset="${a.id}">
-    <span class="compact-icon">${icons[a.category]||icons.default}</span>
-    <span class="compact-copy"><strong>${a.name}</strong><small class="mono">${a.id} · ${locationPath(a.locationId)}</small></span>
-    <span>›</span>
-  </button>`;
-}
-
-function renderDashboard(){
-  document.getElementById("dashboardAssets").innerHTML = db.assets.slice(0,4).map(compactAsset).join("");
-  const rels = db.assets.flatMap(a=>(a.relationships||[]).map(r=>({source:a.name,...r}))).slice(0,5);
-  document.getElementById("dashboardRelationships").innerHTML = rels.map(r=>`
-    <div class="compact-row">
-      <span class="compact-icon">⇄</span>
-      <span class="compact-copy"><strong>${r.source}</strong><small>${r.type.replaceAll("_"," ")} → ${relationshipTarget(r)}</small></span>
-    </div>
-  `).join("");
   bindAssetLinks();
 }
 
-function assetCard(a){
-  return `<button class="asset-card" data-open-asset="${a.id}">
-    <div class="asset-top">
-      <span class="asset-icon">${icons[a.category]||icons.default}</span>
-      <span class="health ${a.status}">${a.health?.label || a.status}</span>
-    </div>
-    <h3>${a.name}</h3>
-    <span class="asset-id mono">${a.id}</span>
-    <span class="asset-location">⌖ ${locationPath(a.locationId)}</span>
-    <div class="asset-footer"><span>${a.category}</span><strong>${a.relationships?.length||0} links</strong></div>
-  </button>`;
+function renderLocations(){
+  const top=db.locations.filter(l=>!l.parentId);
+  document.getElementById("locationGrid").innerHTML=top.map(l=>{
+    const count=db.assets.filter(a=>loc(a.locationId)?.path[0]===l.name).length;
+    return `<button class="location-card" data-open-location="${l.id}"><div class="asset-icon">⌖</div><h3>${l.name}</h3><p>${count} assets across this location hierarchy.</p></button>`;
+  }).join("");
+  document.querySelectorAll("[data-open-location]").forEach(b=>b.onclick=()=>openLocation(b.dataset.openLocation));
 }
 
-function renderAssets(filter="all"){
-  const list = db.assets.filter(a=>filter==="all" || a.category===filter);
-  document.getElementById("assetGrid").innerHTML = list.map(assetCard).join("");
-  bindAssetLinks();
+function openLocation(id){
+  const l=loc(id); if(!l)return;
+  const list=db.assets.filter(a=>loc(a.locationId)?.path[0]===l.name);
+  document.getElementById("locationDetail").innerHTML=`<div class="detail-hero"><div class="detail-identity"><div class="detail-icon">⌖</div><div><p class="eyebrow">${l.type}</p><h1>${l.name}</h1><div class="detail-id">${l.id}</div></div></div></div><div class="section-head"><div><p class="eyebrow">At this location</p><h2>Assets</h2></div></div><div class="asset-grid large">${list.map(assetCard).join("")}</div>`;
+  lastListPage="locations"; showPage("location-detail"); bindAssetLinks();
 }
-
-function openAsset(id){
-  const a = assetById(id);
-  if(!a) return;
-  const rels = a.relationships || [];
-  const specs = Object.entries(a.specifications || {});
-  const services = a.serviceHistory || [];
-  document.getElementById("assetDetail").innerHTML = `
-    <div class="detail-hero">
-      <div class="detail-top">
-        <div class="detail-identity">
-          <div class="detail-icon">${icons[a.category]||icons.default}</div>
-          <div><p class="eyebrow">${a.category} · ${a.subtype||"asset"}</p><h1>${a.name}</h1>
-          <div class="detail-id">${a.id}</div><div class="path">⌖ ${locationPath(a.locationId)}</div></div>
-        </div>
-        <span class="health ${a.status}">${a.health?.label || a.status}</span>
-      </div>
-      <div class="detail-grid">
-        <div class="detail-stat"><small>Permanent ID</small><strong class="mono">${a.id}</strong></div>
-        <div class="detail-stat"><small>Location ID</small><strong class="mono">${a.locationId}</strong></div>
-        <div class="detail-stat"><small>Relationships</small><strong>${rels.length}</strong></div>
-        <div class="detail-stat"><small>Open issues</small><strong>${a.health?.openIssueCount ?? 0}</strong></div>
-      </div>
-    </div>
-    <div class="detail-panels">
-      <section class="detail-panel"><p class="eyebrow">Identity</p><h2>Asset record</h2>
-        ${Object.entries(a.identity||{}).map(([k,v])=>`<div class="record-row"><small>${label(k)}</small><br><strong>${v||"Not entered"}</strong></div>`).join("")}
-      </section>
-      <section class="detail-panel"><p class="eyebrow">Relationships</p><h2>Connected objects</h2>
-        ${rels.length ? rels.map(r=>`<div class="record-row"><small>${r.type.replaceAll("_"," ")}</small><br><strong>${relationshipTarget(r)}</strong> <span class="mono">(${r.targetId})</span></div>`).join("") : `<p class="body-copy">No relationships yet.</p>`}
-      </section>
-      <section class="detail-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>
-        ${specs.length ? specs.map(([k,v])=>`<div class="record-row"><small>${label(k)}</small><br><strong>${v}</strong></div>`).join("") : `<p class="body-copy">No specifications entered.</p>`}
-      </section>
-      <section class="detail-panel"><p class="eyebrow">History</p><h2>Service records</h2>
-        ${services.length ? services.map(s=>`<div class="record-row"><small>${s.date}${s.mileage?` · ${s.mileage.toLocaleString()} mi`:""}</small><br><strong>${s.summary}</strong></div>`).join("") : `<p class="body-copy">No service history entered.</p>`}
-      </section>
-    </div>
-  `;
-  showPage("asset-detail");
-}
-
-function label(k){ return k.replace(/([A-Z])/g," $1").replace(/^./,m=>m.toUpperCase()); }
 
 function bindAssetLinks(){
   document.querySelectorAll("[data-open-asset]").forEach(b=>b.onclick=()=>openAsset(b.dataset.openAsset));
 }
 
-function renderLocations(){
-  const levels = new Map();
-  db.locations.forEach(l=>{
-    let depth = 0, p = l.parentId;
-    while(p){ depth++; p = locationById(p)?.parentId; }
-    levels.set(l.id, depth);
-  });
-  document.getElementById("locationTree").innerHTML = db.locations.map(l=>{
-    const count = db.assets.filter(a=>a.locationId===l.id).length;
-    const cls = levels.get(l.id)===1?"child":levels.get(l.id)>1?"grandchild":"";
-    return `<div class="location-node ${cls}">
-      <span class="location-icon">⌖</span>
-      <span class="location-copy"><strong>${l.name}</strong><small class="mono">${l.id} · ${l.type}</small><small>${l.path.join(" → ")}</small></span>
-      <strong>${count} assets</strong>
+function openAsset(id){
+  const a=asset(id); if(!a)return;
+  const parts=(a.parts||[]).map(id=>db.parts.find(p=>p.id===id)).filter(Boolean);
+  document.getElementById("assetDetail").innerHTML=`
+    <div class="detail-hero">
+      <div class="detail-top">
+        <div class="detail-identity"><div class="detail-icon">${a.icon}</div><div><p class="eyebrow">${a.category}</p><h1>${a.name}</h1><div class="detail-id">${a.id}</div><div class="detail-location">⌖ ${path(a.locationId)}</div></div></div>
+        <span class="health ${healthClass(a)}">${a.healthLabel}</span>
+      </div>
+      <div class="detail-grid">${(a.metrics||[]).map(m=>`<div class="detail-stat"><small>${m.label}</small><strong>${m.value}</strong></div>`).join("")}</div>
+    </div>
+    <div class="detail-panels">
+      <section class="detail-panel">
+        <p class="eyebrow">Garage test</p><h2>Quick actions</h2>
+        <div class="quick-actions">
+          <button class="quick-tile"><span>⚒</span><strong>Log service</strong></button>
+          <button class="quick-tile"><span>▣</span><strong>Order parts</strong></button>
+          <button class="quick-tile"><span>⌖</span><strong>Move asset</strong></button>
+          <button class="quick-tile"><span>▤</span><strong>Add receipt</strong></button>
+          <button class="quick-tile"><span>▧</span><strong>Add photo</strong></button>
+          <button class="quick-tile"><span>!</span><strong>Report issue</strong></button>
+        </div>
+      </section>
+      <section class="detail-panel"><p class="eyebrow">Next action</p><h2>${a.nextAction}</h2><p class="subhead">${a.summary}</p></section>
+      <section class="detail-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>${(a.specifications||[]).length?(a.specifications||[]).map(s=>`<div class="record-row"><small>${s.label}</small><br><strong>${s.value}</strong></div>`).join(""):`<p class="subhead">Specifications will be added as this asset is completed.</p>`}</section>
+      <section class="detail-panel"><p class="eyebrow">Parts & ordering</p><h2>Required items</h2><div class="parts-list">${parts.length?parts.map(p=>`<div class="part-row"><strong>${p.name}</strong><br><small>${p.partNumber||"No part number"} · ${p.verifiedFitment?"Verified":"Fitment must be verified"}</small><div class="retailers">${Object.entries(p.links||{}).map(([name,url])=>`<a class="retailer" href="${url}" target="_blank" rel="noopener">Search ${name}</a>`).join("")}</div></div>`).join(""):`<p class="subhead">No parts linked yet.</p>`}</div></section>
+      <section class="detail-panel"><p class="eyebrow">History</p><h2>Recent activity</h2>${(a.history||[]).length?(a.history||[]).map(h=>`<div class="record-row"><small>${h.date}</small><br><strong>${h.title}</strong><br><small>${h.detail}</small></div>`).join(""):`<p class="subhead">No history entered yet.</p>`}</section>
+      <section class="detail-panel"><p class="eyebrow">Permanent identity</p><h2>Core record</h2><div class="record-row"><small>EnView ID</small><br><strong class="detail-id">${a.id}</strong></div><div class="record-row"><small>Location ID</small><br><strong class="detail-id">${a.locationId}</strong></div><div class="record-row"><small>Category</small><br><strong>${a.category}</strong></div></section>
     </div>`;
-  }).join("");
-}
-
-function renderParts(){
-  document.getElementById("partsGrid").innerHTML = db.parts.map(p=>{
-    const compatible = p.compatibleAssetIds.map(id=>assetById(id)?.name||id).join(", ");
-    return `<article class="part-card">
-      <div class="part-head"><div><p class="eyebrow">Part record</p><h2>${p.name}</h2><div class="asset-id mono">${p.id}</div></div>
-      <span class="verified">${p.verifiedFitment?"Verified":"Fitment unverified"}</span></div>
-      <div class="part-meta">
-        <div><small>Part number</small><strong>${p.partNumber||"Not entered"}</strong></div>
-        <div><small>On hand</small><strong>${p.inventory?.quantityOnHand??0}</strong></div>
-        <div><small>Compatible with</small><strong>${compatible||"Not assigned"}</strong></div>
-        <div><small>Preferred retailer</small><strong>${p.preferredRetailer||"Not selected"}</strong></div>
-      </div>
-      <div class="retailer-row">
-        ${p.retailerLinks?.amazonSearch?`<a class="retailer-link" href="${p.retailerLinks.amazonSearch}" target="_blank" rel="noopener">Search Amazon</a>`:""}
-        ${p.retailerLinks?.walmartSearch?`<a class="retailer-link" href="${p.retailerLinks.walmartSearch}" target="_blank" rel="noopener">Search Walmart</a>`:""}
-      </div>
-    </article>`;
-  }).join("");
-}
-
-function renderRelationships(){
-  const rels = db.assets.flatMap(a=>(a.relationships||[]).map(r=>({sourceId:a.id,source:a.name,...r})));
-  document.getElementById("relationshipBoard").innerHTML = rels.map(r=>`
-    <article class="relationship-card">
-      <div class="relationship-line">
-        <span class="relationship-node">${r.source}</span>
-        <span class="relationship-type">${r.type.replaceAll("_"," ")}</span>
-        <span class="relationship-node">${relationshipTarget(r)}</span>
-      </div>
-      <p class="body-copy mono">${r.sourceId} → ${r.targetId}</p>
-    </article>
-  `).join("");
-}
-
-function populateForms(){
-  const locationOptions = db.locations.map(l=>`<option value="${l.id}">${l.path.join(" → ")}</option>`).join("");
-  document.getElementById("assetLocation").innerHTML = locationOptions;
-  document.getElementById("locationParent").innerHTML = `<option value="">Top-level location</option>${locationOptions}`;
-  document.getElementById("partAsset").innerHTML = db.assets.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");
+  showPage("asset-detail");
 }
 
 function showPage(name){
@@ -216,104 +111,43 @@ function showPage(name){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById(`page-${name}`)?.classList.add("active");
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add("active");
+  if(["dashboard","favorites","assets","locations"].includes(name))lastListPage=name;
   document.getElementById("sidebar").classList.remove("open");
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-function openModal(id){ document.getElementById(id).classList.add("open"); }
-function closeModals(){ document.querySelectorAll(".modal-backdrop").forEach(m=>m.classList.remove("open")); }
-
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageTarget));
+document.getElementById("assetBack").onclick=()=>showPage(lastListPage);
 document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
-document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeModals);
-document.querySelectorAll(".modal-backdrop").forEach(m=>m.onclick=e=>{if(e.target===m)closeModals();});
 
-document.querySelectorAll("[data-asset-filter]").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("[data-asset-filter]").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active"); renderAssets(b.dataset.assetFilter);
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+  const f=b.dataset.filter;document.getElementById("allAssetGrid").innerHTML=db.assets.filter(a=>f==="all"||a.category===f).map(assetCard).join("");bindAssetLinks();
 });
 
-document.getElementById("addAssetBtn").onclick=()=>openModal("assetModal");
-document.getElementById("addLocationBtn").onclick=()=>openModal("locationModal");
-document.getElementById("addPartBtn").onclick=()=>openModal("partModal");
+const quick=document.getElementById("quickModal");
+document.querySelectorAll("[data-open-quick]").forEach(b=>b.onclick=()=>quick.classList.add("open"));
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>quick.classList.remove("open"));
+quick.onclick=e=>{if(e.target===quick)quick.classList.remove("open")};
 
-document.getElementById("assetForm").onsubmit=e=>{
-  e.preventDefault();
-  const category=document.getElementById("assetCategory").value;
-  const prefix={vehicle:"ENV-VEH",equipment:"ENV-EQP",energy:"ENV-ENG",network:"ENV-NET",home:"ENV-HME"}[category]||"ENV-AST";
-  const id=nextId(prefix,db.assets);
-  const statusValue=document.getElementById("assetHealth").value;
-  db.assets.push({
-    id,name:document.getElementById("assetName").value.trim(),category,subtype:"",
-    status:statusValue,locationId:document.getElementById("assetLocation").value,tags:[],
-    identity:{},metrics:{},health:{label:statusValue==="healthy"?"Healthy":statusValue==="attention"?"Attention Soon":"Needs Service",openIssueCount:statusValue==="healthy"?0:1,nextAction:""},
-    relationships:[{type:"located_at",targetId:document.getElementById("assetLocation").value}],
-    specifications:{},serviceHistory:[],documents:[],photos:[]
-  });
-  save(); closeModals(); e.target.reset(); showPage("assets");
-};
+document.getElementById("todayDate").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date());
 
-document.getElementById("locationForm").onsubmit=e=>{
-  e.preventDefault();
-  const parentId=document.getElementById("locationParent").value||null;
-  const parent=parentId?locationById(parentId):null;
-  const name=document.getElementById("locationName").value.trim();
-  db.locations.push({
-    id:nextId("ENV-LOC",db.locations),name,type:document.getElementById("locationType").value,parentId,
-    path:parent?[...parent.path,name]:[name]
-  });
-  save(); closeModals(); e.target.reset(); showPage("locations");
-};
-
-document.getElementById("partForm").onsubmit=e=>{
-  e.preventDefault();
-  const name=document.getElementById("partName").value.trim();
-  const number=document.getElementById("partNumber").value.trim();
-  const query=encodeURIComponent([number,name].filter(Boolean).join(" "));
-  db.parts.push({
-    id:nextId("ENV-PART",db.parts),name,partNumber:number,brand:"",verifiedFitment:false,
-    compatibleAssetIds:[document.getElementById("partAsset").value],
-    preferredRetailer:document.getElementById("partRetailer").value,
-    retailerLinks:{amazonSearch:`https://www.amazon.com/s?k=${query}`,walmartSearch:`https://www.walmart.com/search?q=${query}`},
-    inventory:{quantityOnHand:0,locationId:null}
-  });
-  save(); closeModals(); e.target.reset(); showPage("parts");
-};
-
-document.getElementById("resetDemo").onclick=()=>{
-  if(confirm("Reset EnView 0.5 to the original demo data?")){
-    db=structuredClone(baseData); save(); showPage("dashboard");
-  }
-};
-
-const placeholders={
-  maintenance:["⚒","MaintenanceView","Uses Core assets, parts, locations and service history without creating a separate database."],
-  powerview:["ϟ","PowerView","Live energy data connects to the same battery and inverter asset records."],
-  network:["◎","NetworkView","Network status, IP addresses and firmware connect to permanent device assets."],
-  library:["▤","Library","Documents, photos and receipts attach to asset IDs instead of becoming disconnected files."],
-  settings:["⚙","Core Settings","Future schema tools, imports, exports, user accounts and integrations live here."]
-};
-Object.entries(placeholders).forEach(([key,p])=>{
-  document.getElementById(`page-${key}`).innerHTML=`<div class="placeholder"><div class="placeholder-icon">${p[0]}</div><p class="eyebrow">Connected application</p><h1>${p[1]}</h1><p>${p[2]}</p></div>`;
-});
-
-const searchInput=document.getElementById("globalSearch");
-const searchResults=document.getElementById("searchResults");
-function doSearch(q){
-  if(!q){searchResults.classList.remove("open");return;}
-  const needle=q.toLowerCase();
+const input=document.getElementById("globalSearch"), results=document.getElementById("searchResults");
+function search(q){
+  if(!q){results.classList.remove("open");return}
+  const n=q.toLowerCase();
   const hits=[
-    ...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(needle)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),
-    ...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(needle)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>showPage("locations")})),
-    ...db.parts.filter(p=>JSON.stringify(p).toLowerCase().includes(needle)).map(p=>({title:p.name,sub:`Part · ${p.id}`,go:()=>showPage("parts")}))
-  ].slice(0,9);
-  searchResults.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${h.title}</strong><br><small>${h.sub}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;
-  searchResults.classList.add("open");
-  searchResults.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();searchResults.classList.remove("open");searchInput.value="";});
+    ...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(n)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),
+    ...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(n)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>openLocation(l.id)})),
+    ...db.parts.filter(p=>JSON.stringify(p).toLowerCase().includes(n)).map(p=>({title:p.name,sub:`Part · ${p.id}`,go:()=>{const aid=p.compatibleAssetIds?.[0];aid?openAsset(aid):showPage("assets")}}))
+  ].slice(0,8);
+  results.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${h.title}</strong><br><small>${h.sub}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;
+  results.classList.add("open");
+  results.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();results.classList.remove("open");input.value=""});
 }
-searchInput.oninput=e=>doSearch(e.target.value.trim());
-document.addEventListener("click",e=>{if(!searchResults.contains(e.target)&&e.target!==searchInput)searchResults.classList.remove("open");});
-document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();searchInput.focus();}if(e.key==="Escape"){closeModals();searchResults.classList.remove("open");}});
+input.oninput=e=>search(e.target.value.trim());
+document.addEventListener("click",e=>{if(!results.contains(e.target)&&e.target!==input)results.classList.remove("open")});
+document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();input.focus()}if(e.key==="Escape"){quick.classList.remove("open");results.classList.remove("open")}});
 
-loadCore();
+init();
