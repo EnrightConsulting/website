@@ -1,4 +1,4 @@
-# EnView 0.6 — Experience Layer
+# EnView 0.6.1 — PowerView Connected
 
 This release combines the polished EnView 0.4 experience with the object-based Core Engine introduced in 0.5.
 
@@ -67,3 +67,12 @@ Keep only the new `assets/` folder and the current root `index.html` and `README
 - Receipt and cost capture
 - Automatic next-service calculation
 - Local saved maintenance history
+
+
+## PowerView connection
+
+The PowerView sidebar item and dashboard application card now open the live PowerView dashboard in a new browser tab:
+
+`http://192.168.1.54:8084/#mission`
+
+This address is local to the home network, so it will work only when the device opening EnView can reach that private IP address.
