@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MaintenanceView equipment maintenance dashboard.">
+  <title>MaintenanceView | EnView</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-body">
+  <aside class="sidebar">
+    <a class="brand app-brand" href="index.html">
+      <span class="brand-mark">EN</span><span>VIEW</span>
+    </a>
+
+    <div class="app-name">
+      <span class="app-name-icon">🔧</span>
+      <div>
+        <strong>MaintenanceView</strong>
+        <small>Equipment intelligence</small>
+      </div>
+    </div>
+
+    <nav class="side-nav">
+      <a class="active" href="#dashboard">Dashboard</a>
+      <a href="#equipment">Equipment</a>
+      <a href="#service">Service History</a>
+      <a href="#parts">Parts</a>
+      <a href="#documents">Documents</a>
+      <a href="#settings">Settings</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="live-dot"></span>
+      <div>
+        <strong>EnView v0.2</strong>
+        <small>Application shell</small>
+      </div>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <header class="app-topbar">
+      <div>
+        <p class="muted-label">Thursday, July 23, 2026</p>
+        <h1>Good morning, Kelly.</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost-button">Search</button>
+        <button class="primary small-button">+ Add Service</button>
+      </div>
+    </header>
+
+    <section id="dashboard" class="app-section">
+      <div class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-label">Equipment</span>
+          <strong>9</strong>
+          <small>Vehicles and machines</small>
+        </article>
+        <article class="summary-card warning">
+          <span class="summary-label">Due Soon</span>
+          <strong>3</strong>
+          <small>Within 30 days</small>
+        </article>
+        <article class="summary-card danger">
+          <span class="summary-label">Needs Review</span>
+          <strong>1</strong>
+          <small>Missing current mileage</small>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Services Logged</span>
+          <strong>29</strong>
+          <small>Across all equipment</small>
+        </article>
+      </div>
+    </section>
+
+    <section class="app-section split-grid">
+      <div class="app-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="muted-label">Upcoming</p>
+            <h2>Maintenance attention</h2>
+          </div>
+          <button class="text-button">View all</button>
+        </div>
+
+        <div class="task-list">
+          <article class="task-item">
+            <span class="task-status amber"></span>
+            <div class="task-main">
+              <strong>2022 Ram 1500</strong>
+              <small>Confirm current mileage and next oil interval</small>
+            </div>
+            <span class="task-date">Due soon</span>
+          </article>
+          <article class="task-item">
+            <span class="task-status amber"></span>
+            <div class="task-main">
+              <strong>Husqvarna Z254F</strong>
+              <small>Inspect blades and deck after recent service</small>
+            </div>
+            <span class="task-date">This month</span>
+          </article>
+          <article class="task-item">
+            <span class="task-status blue"></span>
+            <div class="task-main">
+              <strong>Honda Harmony HRR216</strong>
+              <small>Annual blade and oil inspection</small>
+            </div>
+            <span class="task-date">Spring</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="app-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="muted-label">Recent activity</p>
+            <h2>Latest service</h2>
+          </div>
+        </div>
+
+        <div class="activity-list">
+          <article>
+            <span>Jul 21</span>
+            <div>
+              <strong>2021 Volkswagen Tiguan</strong>
+              <small>Oil, filters, cabin filter, tire rotation</small>
+            </div>
+          </article>
+          <article>
+            <span>Jul 20</span>
+            <div>
+              <strong>2022 Ram 1500</strong>
+              <small>Oil, oil filter, air filter, tire rotation</small>
+            </div>
+          </article>
+          <article>
+            <span>May 23</span>
+            <div>
+              <strong>Husqvarna Z254F</strong>
+              <small>Blades replaced</small>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="equipment" class="app-section">
+      <div class="section-row">
+        <div>
+          <p class="muted-label">Asset library</p>
+          <h2>Your equipment</h2>
+        </div>
+        <div class="filter-pills">
+          <button class="pill active">All</button>
+          <button class="pill">Vehicles</button>
+          <button class="pill">Lawn</button>
+          <button class="pill">Tools</button>
+        </div>
+      </div>
+
+      <div class="equipment-grid">
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🛻</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>2022 Ram 1500</h3>
+          <p>Lone Star 4WD · 3.6L</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>Jul 20, 2026</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🚙</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>2021 Tiguan</h3>
+          <p>2.0T SE · 104,150 miles</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>Jul 21, 2026</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🚜</span>
+            <span class="asset-state watch">Watch</span>
+          </div>
+          <h3>Husqvarna Z254F</h3>
+          <p>54-inch zero turn · Kawasaki FR691V</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>May 23, 2026</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🚜</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>Cub Cadet XT1 LT50</h3>
+          <p>2016 riding mower · Kohler KT735</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>May 23, 2026</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🚗</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>1970 Pontiac Catalina</h3>
+          <p>6.6L 400 V8</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>Apr 8, 2025</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🚙</span>
+            <span class="asset-state watch">Mileage needed</span>
+          </div>
+          <h3>2010 GLK350 4MATIC</h3>
+          <p>Mercedes-Benz · 155,000 miles recorded</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>Dec 6, 2025</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🚙</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>2021 Atlas Cross Sport</h3>
+          <p>2.0T SE · 54,875 miles recorded</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>Feb 7, 2026</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🧰</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>Troy-Bilt Pressure Washer</h3>
+          <p>Model 020296 · Honda GCV160</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>May 29, 2025</strong>
+          </div>
+        </article>
+
+        <article class="equipment-card">
+          <div class="equipment-top">
+            <span class="asset-icon">🌱</span>
+            <span class="asset-state good">Current</span>
+          </div>
+          <h3>Honda Harmony HRR216</h3>
+          <p>Walk-behind mower</p>
+          <div class="equipment-meta">
+            <span>Last service</span><strong>Mar 13, 2026</strong>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="app-section app-note">
+      <div>
+        <p class="muted-label">Version 0.2 note</p>
+        <h2>This is the application shell.</h2>
+      </div>
+      <p>
+        The next release will convert these sample records into structured data and
+        add individual equipment detail pages, service-entry forms, parts, and documents.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,10 +1,21 @@
-# EnView Website
+# EnView Platform v0.2
 
-Version 0.1 landing page for the EnView platform by Enright Consulting.
+This release adds the first MaintenanceView application shell.
+
+## Included
+- Updated EnView homepage
+- Working MaintenanceView link
+- Maintenance dashboard
+- Equipment cards
+- Upcoming maintenance panel
+- Recent service activity
+- Responsive desktop and mobile layout
 
 ## Files
 - `index.html`
+- `maintenance.html`
 - `styles.css`
 
-Upload both files to the root of the GitHub `website` repository.
-Cloudflare Pages will automatically deploy the update.
+Upload all three files to the root of the GitHub `website` repository.
+Replace the existing `index.html` and `styles.css`.
+Cloudflare Pages will deploy the update automatically.

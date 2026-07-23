@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="EnView — Intelligence for Home & Business." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="EnView — Intelligence for Home & Business.">
   <title>EnView | Intelligence for Home & Business</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="marketing">
   <header class="site-header">
     <div class="shell nav">
-      <a class="brand" href="#top" aria-label="EnView home">
+      <a class="brand" href="index.html" aria-label="EnView home">
         <span class="brand-mark">EN</span><span>VIEW</span>
       </a>
       <nav>
         <a href="#platform">Platform</a>
         <a href="#products">Products</a>
         <a href="#about">About</a>
+        <a class="nav-button" href="maintenance.html">Open MaintenanceView</a>
       </nav>
     </div>
   </header>
@@ -33,11 +34,11 @@
         together in one simple platform.
       </p>
       <div class="hero-actions">
-        <a class="button primary" href="#products">Explore EnView</a>
-        <a class="button secondary" href="#about">Learn more</a>
+        <a class="button primary" href="maintenance.html">Open MaintenanceView</a>
+        <a class="button secondary" href="#products">Explore EnView</a>
       </div>
 
-      <div class="hero-panel" aria-label="EnView product overview">
+      <div class="hero-panel">
         <div class="panel-top">
           <span>EnView Platform</span>
           <span class="status"><i></i> Live</span>
@@ -50,13 +51,13 @@
               <small>Energy intelligence</small>
             </div>
           </div>
-          <div class="metric">
+          <a class="metric metric-link" href="maintenance.html">
             <span class="icon">🔧</span>
             <div>
               <strong>MaintenanceView</strong>
-              <small>Equipment intelligence</small>
+              <small>Open application →</small>
             </div>
-          </div>
+          </a>
           <div class="metric muted">
             <span class="icon">📊</span>
             <div>
@@ -99,19 +100,19 @@
       <div class="cards">
         <article class="product-card featured">
           <div class="card-icon">⚡</div>
-          <div class="card-kicker">Live platform</div>
+          <div class="card-kicker">Live development</div>
           <h3>PowerView</h3>
           <p>Real-time home energy intelligence for solar, battery, grid, and household performance.</p>
           <span class="card-link">In development →</span>
         </article>
 
-        <article class="product-card">
+        <a class="product-card" href="maintenance.html">
           <div class="card-icon">🔧</div>
-          <div class="card-kicker">Building next</div>
+          <div class="card-kicker">Available now</div>
           <h3>MaintenanceView</h3>
           <p>Track service history, parts, reminders, manuals, and costs for vehicles and equipment.</p>
-          <span class="card-link">Coming next →</span>
-        </article>
+          <span class="card-link">Open application →</span>
+        </a>
 
         <article class="product-card">
           <div class="card-icon">📊</div>
