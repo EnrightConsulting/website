@@ -1,48 +1,43 @@
-# EnView 0.3 — Foundation
+# EnView 0.4 — Assets & Locations
 
-This release transforms the EnView site into the first version of the EnView application.
+This release introduces the core EnView data model:
+
+- Assets are first-class objects
+- Every asset has a permanent page
+- Every asset belongs to a location hierarchy
+- Users can browse by asset or by location
+- Favorite asset cards provide one-click access
+- Global search finds assets and locations
+- Asset detail pages combine identity, location, health, history and intelligence
 
 ## Included
 
-- Persistent responsive application shell
-- EnView Dashboard
-- Working navigation for all planned modules
-- Global search prototype
-- Quick Action menu
-- Reusable cards, buttons, statuses and layout patterns
-- Mobile sidebar and responsive layouts
-- Placeholder foundations for:
-  - HomeView
-  - PowerView
-  - MaintenanceView
-  - NetworkView
-  - FinanceView
-  - OperationsView
-  - Library
-  - Settings
+- Updated Dashboard with favorite asset cards
+- New Locations navigation and location cards
+- New All Assets page with category filters
+- Working asset detail pages
+- Working location detail pages
+- Location hierarchy display
+- Move Asset quick action concept
+- Improved navigation grouping
+- Search across assets and locations
+- Responsive mobile layout
 
-## Product principles
+## Deploy
 
-1. Capture once. Use everywhere.
-2. Common tasks should take less than 30 seconds.
-3. One screen. One purpose.
-4. The Garage Test.
-5. The software remembers so the user does not have to.
-
-## Deploy to Cloudflare Pages through GitHub
-
-Upload the contents of this folder to the root of the `website` repository.
-
-Required structure:
+Upload these items to the root of the GitHub `website` repository:
 
 - `index.html`
+- `README.md`
 - `assets/css/styles.css`
 - `assets/js/app.js`
 
-Cloudflare Pages should deploy automatically after the GitHub commit.
+Replace the current files. Cloudflare Pages should deploy automatically.
+
+Old root-level `styles.css`, `app.js`, `css/`, `js/`, and `maintenance.html` files are no longer required once the new `assets` structure is working.
 
 ## Next release
 
-EnView 0.4 — First Asset
+EnView 0.5 — First Real Asset
 
-Build the complete 2021 Volkswagen Tiguan asset experience.
+Build the complete 2021 Volkswagen Tiguan experience with structured service history, parts, fluids, specifications, documents and a fast service logging workflow.

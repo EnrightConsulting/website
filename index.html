@@ -19,37 +19,24 @@
       </div>
 
       <nav class="nav" aria-label="Main navigation">
-        <button class="nav-item active" data-page="dashboard">
-          <span class="nav-icon">⌂</span><span>Dashboard</span>
-        </button>
-        <button class="nav-item" data-page="homeview">
-          <span class="nav-icon">⌂</span><span>HomeView</span>
-        </button>
-        <button class="nav-item" data-page="powerview">
-          <span class="nav-icon">ϟ</span><span>PowerView</span>
-        </button>
-        <button class="nav-item" data-page="maintenance">
-          <span class="nav-icon">⚒</span><span>MaintenanceView</span>
-        </button>
-        <button class="nav-item" data-page="network">
-          <span class="nav-icon">◎</span><span>NetworkView</span>
-        </button>
-        <button class="nav-item" data-page="finance">
-          <span class="nav-icon">$</span><span>FinanceView</span>
-        </button>
-        <button class="nav-item" data-page="operations">
-          <span class="nav-icon">↗</span><span>OperationsView</span>
-        </button>
-        <button class="nav-item" data-page="library">
-          <span class="nav-icon">▤</span><span>Library</span>
-        </button>
+        <div class="nav-label">Overview</div>
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
+        <button class="nav-item" data-page="locations"><span class="nav-icon">⌖</span><span>Locations</span></button>
+        <button class="nav-item" data-page="assets"><span class="nav-icon">◇</span><span>All Assets</span></button>
+
+        <div class="nav-label">Applications</div>
+        <button class="nav-item" data-page="homeview"><span class="nav-icon">⌂</span><span>HomeView</span></button>
+        <button class="nav-item" data-page="powerview"><span class="nav-icon">ϟ</span><span>PowerView</span></button>
+        <button class="nav-item" data-page="maintenance"><span class="nav-icon">⚒</span><span>MaintenanceView</span></button>
+        <button class="nav-item" data-page="network"><span class="nav-icon">◎</span><span>NetworkView</span></button>
+        <button class="nav-item" data-page="finance"><span class="nav-icon">$</span><span>FinanceView</span></button>
+        <button class="nav-item" data-page="operations"><span class="nav-icon">↗</span><span>OperationsView</span></button>
+        <button class="nav-item" data-page="library"><span class="nav-icon">▤</span><span>Library</span></button>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="nav-item" data-page="settings">
-          <span class="nav-icon">⚙</span><span>Settings</span>
-        </button>
-        <div class="version">EnView 0.3 · Foundation</div>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+        <div class="version">EnView 0.4 · Assets & Locations</div>
       </div>
     </aside>
 
@@ -58,7 +45,7 @@
         <button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
         <div class="search-wrap">
           <span class="search-icon">⌕</span>
-          <input id="globalSearch" type="search" placeholder="Search EnView..." autocomplete="off" />
+          <input id="globalSearch" type="search" placeholder="Search assets, locations, parts..." autocomplete="off" />
           <kbd>⌘ K</kbd>
         </div>
         <div class="top-actions">
@@ -76,106 +63,107 @@
             <div>
               <p class="eyebrow" id="todayDate"></p>
               <h1>Good morning, Kelly</h1>
-              <p class="subhead">Here is what deserves your attention today.</p>
+              <p class="subhead">Everything important, organized by asset and location.</p>
             </div>
             <button class="primary-button" data-open-quick>＋ Quick Action</button>
           </div>
 
           <section class="attention-panel">
             <div class="section-title-row">
-              <div>
-                <p class="eyebrow">Today</p>
-                <h2>Priorities</h2>
-              </div>
+              <div><p class="eyebrow">Today</p><h2>Priorities</h2></div>
               <button class="text-button">View all</button>
             </div>
             <div class="priority-list">
-              <button class="priority-item" data-page-target="maintenance">
+              <button class="priority-item" data-asset="ram">
                 <span class="status-dot red"></span>
-                <span class="priority-copy"><strong>Ram oil service due soon</strong><small>Approximately 650 miles remaining</small></span>
+                <span class="priority-copy"><strong>Ram oil service due soon</strong><small>Main House · Garage · Bay 1</small></span>
                 <span class="arrow">›</span>
               </button>
-              <button class="priority-item" data-page-target="homeview">
+              <button class="priority-item" data-asset="hvac">
                 <span class="status-dot amber"></span>
-                <span class="priority-copy"><strong>HVAC filter due next week</strong><small>Main house · 20 × 25 × 4</small></span>
+                <span class="priority-copy"><strong>HVAC filter due next week</strong><small>Main House · Hallway mechanical closet</small></span>
                 <span class="arrow">›</span>
               </button>
-              <button class="priority-item" data-page-target="powerview">
+              <button class="priority-item" data-asset="battery">
                 <span class="status-dot green"></span>
-                <span class="priority-copy"><strong>Power system operating normally</strong><small>Battery and solar data available</small></span>
+                <span class="priority-copy"><strong>Harris battery operating normally</strong><small>Main House · Garage · Solar wall</small></span>
                 <span class="arrow">›</span>
               </button>
-              <button class="priority-item" data-page-target="network">
-                <span class="status-dot green"></span>
-                <span class="priority-copy"><strong>Network healthy</strong><small>Main house, garage and Barndo connected</small></span>
+              <button class="priority-item" data-asset="camera">
+                <span class="status-dot red"></span>
+                <span class="priority-copy"><strong>Barndo camera offline</strong><small>Barndo · Exterior · North wall</small></span>
                 <span class="arrow">›</span>
               </button>
             </div>
           </section>
 
-          <section class="apps-section">
-            <div class="section-title-row">
-              <div>
-                <p class="eyebrow">Workspace</p>
-                <h2>Applications</h2>
+          <section class="dashboard-grid">
+            <section>
+              <div class="section-title-row">
+                <div><p class="eyebrow">One-click access</p><h2>Favorite assets</h2></div>
+                <button class="text-button" data-page-target="assets">All assets</button>
               </div>
-            </div>
-            <div class="app-grid">
-              <button class="app-card" data-page-target="homeview">
-                <span class="app-icon home">⌂</span>
-                <span><strong>HomeView</strong><small>Property, systems and buildings</small></span>
-                <span class="arrow">›</span>
-              </button>
-              <button class="app-card" data-page-target="powerview">
-                <span class="app-icon power">ϟ</span>
-                <span><strong>PowerView</strong><small>Real-time home energy intelligence</small></span>
-                <span class="arrow">›</span>
-              </button>
-              <button class="app-card" data-page-target="maintenance">
-                <span class="app-icon maintenance">⚒</span>
-                <span><strong>MaintenanceView</strong><small>Vehicles, equipment and service</small></span>
-                <span class="arrow">›</span>
-              </button>
-              <button class="app-card" data-page-target="network">
-                <span class="app-icon network">◎</span>
-                <span><strong>NetworkView</strong><small>Devices, connections and health</small></span>
-                <span class="arrow">›</span>
-              </button>
-              <button class="app-card" data-page-target="finance">
-                <span class="app-icon finance">$</span>
-                <span><strong>FinanceView</strong><small>Business performance and insights</small></span>
-                <span class="arrow">›</span>
-              </button>
-              <button class="app-card" data-page-target="operations">
-                <span class="app-icon operations">↗</span>
-                <span><strong>OperationsView</strong><small>Workflows, activity and performance</small></span>
-                <span class="arrow">›</span>
-              </button>
-              <button class="app-card" data-page-target="library">
-                <span class="app-icon library">▤</span>
-                <span><strong>Library</strong><small>Manuals, receipts and documents</small></span>
-                <span class="arrow">›</span>
-              </button>
-            </div>
+              <div class="asset-grid" id="favoriteAssets"></div>
+            </section>
+
+            <aside class="locations-panel">
+              <div class="section-title-row">
+                <div><p class="eyebrow">Where things live</p><h2>Locations</h2></div>
+                <button class="text-button" data-page-target="locations">View all</button>
+              </div>
+              <div class="location-list" id="dashboardLocations"></div>
+            </aside>
           </section>
 
           <section class="lower-grid">
             <div class="card">
-              <div class="section-title-row">
-                <div><p class="eyebrow">Latest</p><h2>Recent activity</h2></div>
-              </div>
+              <div class="section-title-row"><div><p class="eyebrow">Latest</p><h2>Recent activity</h2></div></div>
               <div class="activity-list">
-                <div class="activity"><span class="activity-icon">⚒</span><div><strong>Tiguan maintenance record updated</strong><small>MaintenanceView · Yesterday</small></div></div>
-                <div class="activity"><span class="activity-icon">ϟ</span><div><strong>PowerView telemetry received</strong><small>PowerView · 12 minutes ago</small></div></div>
-                <div class="activity"><span class="activity-icon">◎</span><div><strong>Barndo camera marked offline</strong><small>NetworkView · 2 days ago</small></div></div>
+                <div class="activity"><span class="activity-icon">⚒</span><div><strong>Tiguan maintenance record updated</strong><small>Main House · Garage · Yesterday</small></div></div>
+                <div class="activity"><span class="activity-icon">ϟ</span><div><strong>PowerView telemetry received</strong><small>Main House · Garage · 12 minutes ago</small></div></div>
+                <div class="activity"><span class="activity-icon">⌖</span><div><strong>Pressure washer moved</strong><small>Garage → Barndo workshop · 2 days ago</small></div></div>
               </div>
             </div>
             <div class="card product-principle">
               <p class="eyebrow">EnView principle</p>
-              <h2>Capture once.<br />Use everywhere.</h2>
-              <p>Common updates should take less than 30 seconds, even when you are standing in the garage with one hand free.</p>
+              <h2>Every asset has a home.</h2>
+              <p>Identity, location, health, history and intelligence stay connected—no matter which application you use.</p>
             </div>
           </section>
+        </section>
+
+        <section class="page" id="page-locations">
+          <div class="page-heading">
+            <div><p class="eyebrow">Browse by place</p><h1>Locations</h1><p class="subhead">Properties, buildings, rooms, shelves and storage areas.</p></div>
+            <button class="primary-button" data-open-add-location>＋ Add Location</button>
+          </div>
+          <div class="location-grid" id="locationGrid"></div>
+        </section>
+
+        <section class="page" id="page-assets">
+          <div class="page-heading">
+            <div><p class="eyebrow">Your world</p><h1>All Assets</h1><p class="subhead">Quick access without digging through folders.</p></div>
+            <button class="primary-button" data-open-quick>＋ Add Asset</button>
+          </div>
+          <div class="filter-row">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="vehicle">Vehicles</button>
+            <button class="filter-chip" data-filter="equipment">Equipment</button>
+            <button class="filter-chip" data-filter="home">Home Systems</button>
+            <button class="filter-chip" data-filter="network">Network</button>
+            <button class="filter-chip" data-filter="energy">Energy</button>
+          </div>
+          <div class="asset-grid large" id="allAssets"></div>
+        </section>
+
+        <section class="page" id="page-asset-detail">
+          <button class="back-button" id="assetBack">← Back</button>
+          <div id="assetDetail"></div>
+        </section>
+
+        <section class="page" id="page-location-detail">
+          <button class="back-button" id="locationBack">← Back</button>
+          <div id="locationDetail"></div>
         </section>
 
         <section class="page" id="page-homeview"></section>
@@ -193,20 +181,33 @@
   <button class="floating-action" data-open-quick aria-label="Open quick actions">＋</button>
 
   <div class="modal-backdrop" id="quickModal" aria-hidden="true">
-    <div class="quick-modal" role="dialog" aria-modal="true" aria-labelledby="quickTitle">
+    <div class="quick-modal" role="dialog" aria-modal="true">
       <div class="modal-head">
-        <div><p class="eyebrow">Fast capture</p><h2 id="quickTitle">What do you want to do?</h2></div>
-        <button class="close-button" id="closeQuick" aria-label="Close">×</button>
+        <div><p class="eyebrow">Fast capture</p><h2>What do you want to do?</h2></div>
+        <button class="close-button" data-close-modal>×</button>
       </div>
       <div class="quick-grid">
-        <button><span>⚒</span><strong>Log Service</strong><small>Record work in under 30 seconds</small></button>
-        <button><span>＋</span><strong>Add Asset</strong><small>Vehicle, equipment or property system</small></button>
+        <button><span>⚒</span><strong>Log Service</strong><small>Pick an asset and record work</small></button>
+        <button><span>◇</span><strong>Add Asset</strong><small>Name it, place it, save it</small></button>
+        <button><span>⌖</span><strong>Move Asset</strong><small>Update location in seconds</small></button>
         <button><span>▧</span><strong>Add Photo</strong><small>Attach a photo to an asset</small></button>
         <button><span>▤</span><strong>Add Receipt</strong><small>Save a purchase or service receipt</small></button>
-        <button><span>◷</span><strong>Create Reminder</strong><small>Schedule a future task</small></button>
-        <button><span>!</span><strong>Report Issue</strong><small>Capture a problem while it is fresh</small></button>
+        <button><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
       </div>
-      <p class="modal-note">Sprint 1 establishes the workflow. Data saving arrives in Quick Capture.</p>
+      <p class="modal-note">This release demonstrates navigation and structure. Persistent data entry comes next.</p>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="locationModal" aria-hidden="true">
+    <div class="quick-modal small-modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div><p class="eyebrow">New place</p><h2>Add a location</h2></div>
+        <button class="close-button" data-close-location>×</button>
+      </div>
+      <label class="field"><span>Location name</span><input placeholder="Example: Storage Unit A" /></label>
+      <label class="field"><span>Parent location</span><select><option>Top-level location</option><option>Main House</option><option>Barndo</option><option>Pronto Services</option></select></label>
+      <label class="field"><span>Location type</span><select><option>Property</option><option>Building</option><option>Room</option><option>Storage area</option><option>Shelf / bin</option></select></label>
+      <button class="primary-button full">Save Location</button>
     </div>
   </div>
 
