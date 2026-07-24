@@ -1,4 +1,4 @@
-const STORAGE_KEY = "enview-v0.9.2";
+const STORAGE_KEY = "enview-v0.10.0";
 const POWERVIEW_CONFIG_KEY = "enview-powerview-url";
 const DEFAULT_POWERVIEW_URL = "https://hop-charity-determines-roulette.trycloudflare.com/#mission";
 let powerViewRefreshTimer = null;
@@ -27,7 +27,7 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.9.1") || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.9.2") || localStorage.getItem("enview-v0.9.1") || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
@@ -382,7 +382,7 @@ function openAsset(id, tab="overview"){
   const lc=assetLifecycle(a);
   const tabs=[
     ["overview","Overview"],["maintenance","Maintenance"],["timeline","Timeline"],["documents","Documents"],
-    ["photos","Photos"],["parts","Parts"],["warranty","Warranty"],["notes","Notes"],["settings","Settings"]
+    ["photos","Photos"],["parts","Parts"],["connections","Connections"],["warranty","Warranty"],["notes","Notes"],["settings","Settings"]
   ];
   const metricCards=(a.metrics||[]).map(x=>`<div class="workspace-stat"><small>${escapeHtml(x.label)}</small><strong>${escapeHtml(x.value)}</strong></div>`).join("") || `<div class="workspace-stat"><small>Status</small><strong>${lifecycleLabel(lc)}</strong></div>`;
   document.getElementById("assetDetail").innerHTML=`
@@ -445,6 +445,12 @@ function renderWorkspaceTab(assetId,tab){
     content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Parts & supplies</p><h2>${parts.length} linked items</h2></div><button class="primary-button" data-order-part>Search for Parts</button></div><div class="workspace-list">${parts.length?parts.map(p=>`<article class="workspace-list-card"><div><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.brand||"")} · ${escapeHtml(p.partNumber||"No part number")}</p><small>${p.verifiedFitment?"Verified fitment":"Fitment must be verified"}</small></div><button class="secondary-button" data-part-search="${escapeHtml(`${a.name} ${p.brand||""} ${p.partNumber||p.name}`)}">Search</button></article>`).join(""):`<div class="empty-state"><h2>No parts linked yet</h2></div>`}</div>`;
     content.querySelector("[data-order-part]").onclick=()=>openActionModal("order-parts",a.id);
     content.querySelectorAll("[data-part-search]").forEach(b=>b.onclick=()=>window.open(`https://www.google.com/search?q=${encodeURIComponent(b.dataset.partSearch)}`,"_blank","noopener"));
+  } else if(tab==="connections"){
+    const isEnergy=a.category==="energy" || /battery|solar|inverter|power/i.test(`${a.name} ${a.summary||""}`);
+    content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">External systems</p><h2>Connections</h2><p>Open specialized manufacturer and developer interfaces without duplicating them inside EnView.</p></div><button class="primary-button" data-workspace-connections>Manage Services</button></div>
+    <div class="workspace-list">${isEnergy?`<article class="workspace-list-card connection-row"><div class="connection-row-main"><div class="connection-logo small">ϟ</div><div><span class="service-state" id="assetPvState"><i></i> Checking</span><h3>PowerView</h3><p>Live energy dashboard and telemetry</p></div></div><button class="primary-button" data-asset-open-pv>Open Dashboard ↗</button></article>`:`<div class="empty-state"><h2>No services connected</h2><p>Add a manufacturer portal, utility, finance account, network console, or custom website for this asset.</p></div>`}</div>`;
+    content.querySelector("[data-workspace-connections]").onclick=()=>showPage("connections");
+    const open=content.querySelector("[data-asset-open-pv]"); if(open){open.onclick=()=>window.open(getPowerViewUrl(),"_blank","noopener,noreferrer");refreshPowerViewSummary(false,"assetPvState");}
   } else if(tab==="warranty"){
     const w=a.warranty||{};
     content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Coverage</p><h2>Warranty</h2></div><button class="primary-button" data-save-warranty>Save Warranty</button></div><div class="workspace-form card"><label class="field"><span>Provider</span><input id="warrantyProvider" value="${escapeHtml(w.provider||"")}"></label><label class="field"><span>Policy / reference</span><input id="warrantyReference" value="${escapeHtml(w.reference||"")}"></label><label class="field"><span>Start date</span><input id="warrantyStart" type="date" value="${escapeHtml(w.startDate||"")}"></label><label class="field"><span>Expiration date</span><input id="warrantyEnd" type="date" value="${escapeHtml(w.endDate||"")}"></label><label class="field full"><span>Coverage notes</span><textarea id="warrantyNotes" rows="5">${escapeHtml(w.notes||"")}</textarea></label></div>`;
@@ -485,53 +491,62 @@ function renderPowerView(){
   const page=document.getElementById("page-powerview");
   const url=getPowerViewUrl();
   page.innerHTML=`
-    <div class="powerview-page-heading">
-      <div><p class="eyebrow">Real-time home energy intelligence</p><h1>PowerView</h1><p class="subhead">The original PowerView dashboard, kept inside EnView.</p></div>
+    <div class="page-heading connected-heading">
+      <div><p class="eyebrow">Connected service</p><h1>PowerView</h1><p class="subhead">Live energy intelligence from the existing PowerView application.</p></div>
       <div class="powerview-actions">
         <button class="secondary-button" data-pv-settings>Connection</button>
-        <button class="secondary-button" data-pv-reload>Reload</button>
-        <button class="primary-button" data-pv-full>Open full screen</button>
+        <button class="secondary-button" data-pv-test>Test Status</button>
+        <button class="primary-button" data-pv-open>Open Dashboard ↗</button>
       </div>
     </div>
+    <section class="connection-hero card">
+      <div class="connection-brand"><div class="connection-logo">ϟ</div><div><span class="service-state" id="pvServiceState"><i></i> Checking connection</span><h2>PowerView</h2><p id="pvServiceUrl">${escapeHtml(url)}</p></div></div>
+      <div class="connection-sync"><small>Last checked</small><strong id="pvChecked">Checking…</strong></div>
+    </section>
     <section class="powerview-status" aria-label="PowerView live status">
       <div class="powerview-metric"><small>Battery</small><strong id="pvSoc">—</strong></div>
       <div class="powerview-metric"><small>Solar</small><strong id="pvSolar">—</strong></div>
       <div class="powerview-metric"><small>Home load</small><strong id="pvLoad">—</strong></div>
       <div class="powerview-metric"><small>Grid</small><strong id="pvGrid">—</strong></div>
       <div class="powerview-metric"><small>Garage</small><strong id="pvTemp">—</strong></div>
-      <div class="powerview-connection"><span id="pvConnectionDot"></span><div><strong id="pvConnectionText">Connecting…</strong><small id="pvUpdated">Live summary</small></div></div>
     </section>
-    <section class="powerview-frame-card">
-      <div class="powerview-frame-toolbar"><span>PowerView Dashboard</span><small id="pvFrameUrl">${escapeHtml(url)}</small></div>
-      <iframe id="powerViewFrame" class="powerview-frame" src="${escapeHtml(url)}" title="PowerView dashboard" loading="eager" allow="fullscreen"></iframe>
-      <div class="powerview-frame-help"><strong>Dashboard not visible?</strong><span>The active PowerView tunnel may have changed or the server may block embedding.</span><button class="text-button" data-pv-settings>Update connection</button></div>
+    <section class="connected-layout">
+      <article class="card capabilities-card"><p class="eyebrow">Capabilities</p><h2>What EnView can use</h2><div class="capability-list"><span>✓ Launch live dashboard</span><span>✓ Read stable API summary</span><span>✓ Surface energy status</span><span>◷ Alerts and timeline events planned</span></div></article>
+      <article class="card launch-card"><p class="eyebrow light">Specialized application</p><h2>PowerView remains PowerView.</h2><p>EnView keeps the live summary here and opens the complete dashboard in a new browser tab for deeper energy analysis.</p><button class="primary-button light-button" data-pv-open>Open PowerView Dashboard ↗</button></article>
     </section>`;
 
   page.querySelectorAll("[data-pv-settings]").forEach(b=>b.onclick=()=>{
     const next=prompt("PowerView HTTPS dashboard URL:",getPowerViewUrl());
     if(!next?.trim()) return;
-    try { new URL(next.trim()); }
+    try { const u=new URL(next.trim()); if(!["http:","https:"].includes(u.protocol)) throw new Error(); }
     catch { alert("Please enter a valid web address beginning with https://"); return; }
     localStorage.setItem(POWERVIEW_CONFIG_KEY,next.trim());
     renderPowerView();
   });
-  page.querySelector("[data-pv-reload]").onclick=()=>{
-    const frame=document.getElementById("powerViewFrame");
-    frame.src=getPowerViewUrl();
-    refreshPowerViewSummary();
-  };
-  page.querySelector("[data-pv-full]").onclick=()=>{ window.location.href=getPowerViewUrl(); };
+  page.querySelectorAll("[data-pv-open]").forEach(b=>b.onclick=()=>window.open(getPowerViewUrl(),"_blank","noopener,noreferrer"));
+  page.querySelector("[data-pv-test]").onclick=()=>refreshPowerViewSummary(true);
   refreshPowerViewSummary();
   clearInterval(powerViewRefreshTimer);
   powerViewRefreshTimer=setInterval(()=>{
     if(document.getElementById("page-powerview")?.classList.contains("active")) refreshPowerViewSummary();
   },15000);
 }
-async function refreshPowerViewSummary(){
-  const text=document.getElementById("pvConnectionText");
-  const dot=document.getElementById("pvConnectionDot");
-  if(!text||!dot) return;
-  text.textContent="Connecting…"; dot.className="connecting";
+function renderConnections(){
+  const page=document.getElementById("page-connections");
+  page.innerHTML=`<div class="page-heading"><div><p class="eyebrow">EnView Core</p><h1>Connected Services</h1><p class="subhead">Manage external applications, portals, and future API integrations in one place.</p></div><button class="primary-button" data-add-service>＋ Add Service</button></div>
+  <div class="service-grid">
+    <article class="service-card"><div class="service-card-head"><div class="connection-logo">ϟ</div><span class="service-state" id="managerPvState"><i></i> Checking</span></div><h2>PowerView</h2><p>Real-time home energy intelligence</p><div class="service-capability-chips"><span>Live data</span><span>API</span><span>Dashboard</span></div><div class="service-card-actions"><button class="secondary-button" data-manage-pv>Manage</button><button class="primary-button" data-open-pv>Open ↗</button></div></article>
+    <button class="add-service-card" data-add-service><span>＋</span><strong>Add connected service</strong><small>Manufacturer portal, utility, bank, network tool, or custom website</small></button>
+  </div>`;
+  page.querySelector("[data-manage-pv]").onclick=()=>showPage("powerview");
+  page.querySelector("[data-open-pv]").onclick=()=>window.open(getPowerViewUrl(),"_blank","noopener,noreferrer");
+  page.querySelectorAll("[data-add-service]").forEach(b=>b.onclick=()=>showToast("Custom service setup is coming next. PowerView is the first live connection."));
+  refreshPowerViewSummary(false,"managerPvState");
+}
+async function refreshPowerViewSummary(showResult=false, stateId="pvServiceState"){
+  const state=document.getElementById(stateId);
+  if(state){ state.className="service-state checking"; state.innerHTML="<i></i> Checking connection"; }
+  const checked=document.getElementById("pvChecked");
   try{
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),7000);
@@ -541,23 +556,24 @@ async function refreshPowerViewSummary(){
     const live=await response.json();
     const solark=live.solark||{};
     const garage=live.garage_temp||{};
-    document.getElementById("pvSoc").textContent=powerMetric(solark.soc,"%");
-    document.getElementById("pvSolar").textContent=powerKw(solark.pvPower);
-    document.getElementById("pvLoad").textContent=powerKw(solark.loadPower);
-    document.getElementById("pvGrid").textContent=powerKw(solark.gridPower);
-    document.getElementById("pvTemp").textContent=powerMetric(garage.garage_temp_f,"°F");
-    text.textContent="Live"; dot.className="live";
-    document.getElementById("pvUpdated").textContent=`Updated ${new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}`;
+    const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+    set("pvSoc",powerMetric(solark.soc,"%")); set("pvSolar",powerKw(solark.pvPower)); set("pvLoad",powerKw(solark.loadPower)); set("pvGrid",powerKw(solark.gridPower)); set("pvTemp",powerMetric(garage.garage_temp_f,"°F"));
+    if(state){state.className="service-state online";state.innerHTML="<i></i> Connected";}
+    if(checked) checked.textContent=new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+    if(showResult) showToast("PowerView connection is live.");
+    return true;
   }catch(error){
-    text.textContent="Summary unavailable"; dot.className="offline";
-    document.getElementById("pvUpdated").textContent="The dashboard may still load below";
+    if(state){state.className="service-state offline";state.innerHTML="<i></i> API unavailable";}
+    if(checked) checked.textContent="Could not reach API";
+    if(showResult) showToast("PowerView API could not be reached. Check the tunnel URL.");
+    return false;
   }
 }
 
 function showPage(name){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById(`page-${name}`)?.classList.add("active"); document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add("active");
-  if(name==="maintenance")renderMaintenance(); if(name==="powerview")renderPowerView(); if(["dashboard","favorites","assets","locations"].includes(name))lastListPage=name;
+  if(name==="maintenance")renderMaintenance(); if(name==="powerview")renderPowerView(); if(name==="connections")renderConnections(); if(["dashboard","favorites","assets","locations"].includes(name))lastListPage=name;
   document.getElementById("sidebar").classList.remove("open"); window.scrollTo({top:0,behavior:"smooth"});
 }
 

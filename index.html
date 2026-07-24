@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#101828" />
-  <title>EnView 0.9.2 — PowerView Integration</title>
+  <title>EnView 0.10.0 — Connected Services</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
@@ -18,16 +18,18 @@
       <button class="nav-item" data-page="locations"><span>⌖</span>Locations</button>
       <div class="nav-label">Applications</div>
       <button class="nav-item" data-page="homeview"><span>⌂</span>HomeView</button>
-      <button class="nav-item" data-page="powerview"><span>ϟ</span>PowerView</button>
       <button class="nav-item" data-page="maintenance"><span>⚒</span>MaintenanceView</button>
       <button class="nav-item" data-page="network"><span>◎</span>NetworkView</button>
       <button class="nav-item" data-page="finance"><span>$</span>FinanceView</button>
       <button class="nav-item" data-page="operations"><span>↗</span>OperationsView</button>
       <button class="nav-item" data-page="library"><span>▤</span>Library</button>
+      <div class="nav-label">Connected Services</div>
+      <button class="nav-item" data-page="powerview"><span>ϟ</span>PowerView</button>
+      <button class="nav-item" data-page="connections"><span>⛓</span>Manage Services</button>
     </nav>
     <div class="sidebar-footer">
       <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
-      <div class="version"><strong>EnView v0.9.2</strong><span>PowerView Integration</span></div>
+      <div class="version"><strong>EnView v0.10.0</strong><span>Connected Services</span></div>
     </div>
   </aside>
 
@@ -106,6 +108,7 @@
 
       <section class="page" id="page-homeview"></section>
       <section class="page" id="page-powerview"></section>
+      <section class="page" id="page-connections"></section>
       <section class="page" id="page-maintenance"></section>
       <section class="page" id="page-network"></section>
       <section class="page" id="page-finance"></section>
@@ -129,7 +132,7 @@
       <button data-quick-action="order-parts"><span>▣</span><strong>Order Parts</strong><small>Open saved retailer searches</small></button>
       <button data-quick-action="report-issue"><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
     </div>
-    <p class="modal-note">EnView v0.9.2 keeps PowerView inside the EnView experience without rebuilding the dashboard.</p>
+    <p class="modal-note">EnView v0.10.0 connects external services while letting each specialized application keep its own interface.</p>
   </div>
 </div>
 

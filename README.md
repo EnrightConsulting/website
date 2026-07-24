@@ -1,20 +1,13 @@
-# EnView v0.9.2 — PowerView Integration
+# EnView v0.10.0 — Connected Services
 
-This focused release keeps the original PowerView dashboard inside the EnView experience instead of opening a separate browser window.
+This release introduces the reusable Connected Services framework and proves it with PowerView.
 
-## Included
-
-- PowerView opens within EnView while the EnView sidebar and header remain visible
-- The existing PowerView dashboard is embedded without rebuilding it
-- Live summary strip for battery SOC, solar, home load, grid, and garage temperature
-- Stable fields use `solark.soc`, `solark.pvPower`, `solark.loadPower`, `solark.gridPower`, and `garage_temp.garage_temp_f`
-- Reload and same-tab full-screen controls
-- Editable HTTPS PowerView connection URL for temporary Cloudflare tunnel changes
-- Clear fallback guidance when the tunnel is offline or embedding is blocked
-- Existing v0.9.1 browser data migrates automatically
+## PowerView test connection
+- Stores an editable dashboard URL in browser storage.
+- Tests the stable `/api/live` endpoint.
+- Displays battery, solar, load, grid, and garage temperature when the API is reachable.
+- Opens the complete PowerView dashboard in a new browser tab instead of embedding it.
+- Adds a Connected Services manager and an asset-level Connections tab for energy assets.
 
 ## Deployment
-
-Upload the contents of this folder to the EnView GitHub repository / Cloudflare Pages project.
-
-The default PowerView URL is the current temporary Cloudflare tunnel. Use **PowerView → Connection** to update it when the tunnel address changes.
+Upload the contents of this folder to the repository root used by Cloudflare Pages. Existing browser data from v0.9.2 and earlier is migrated automatically.
