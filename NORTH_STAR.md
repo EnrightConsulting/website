@@ -1,9 +1,7 @@
-# EnView Handbook
+# North Star
 
-**Version:** 1.0
-
-## Product Promise
-> Know what matters today.
+## Why EnView Exists
+EnView transforms information into intelligence.
 
 ## Mission
 Transform data into timely, actionable intelligence.
@@ -11,4 +9,5 @@ Transform data into timely, actionable intelligence.
 ## Vision
 Create the world's most intuitive Asset Intelligence Platform.
 
-The Handbook defines the product. The code implements it.
+## Product Promise
+Know what matters today.
