@@ -1,4 +1,4 @@
-const STORAGE_KEY = "enview-v0.8.1";
+const STORAGE_KEY = "enview-v0.9.0";
 const POWERVIEW_URL = "http://192.168.1.54:8084/#mission";
 let db = null;
 let baseData = null;
@@ -20,11 +20,12 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
-  db.assets.forEach(a => { a.meters ||= []; a.lifecycle ||= "active"; a.sleepUntil ||= null; });
+  db.receipts ||= []; db.issues ||= []; db.documents ||= []; db.photos ||= [];
+  db.assets.forEach(a => { a.meters ||= []; a.lifecycle ||= "active"; a.sleepUntil ||= null; a.notes ||= []; a.warranty ||= {}; });
   wakeScheduledAssets();
   selectedMaintenanceAssetId = db.assets.find(a => db.maintenancePlans.some(p => p.assetId === a.id))?.id || db.assets[0]?.id;
   buildPlaceholders();
@@ -357,15 +358,99 @@ function openLocation(id){
   lastListPage="locations"; showPage("location-detail"); bindAssetLinks();
 }
 function bindAssetLinks(){ document.querySelectorAll("[data-open-asset]").forEach(b=>b.onclick=()=>openAsset(b.dataset.openAsset)); }
-function openAsset(id){
-  const a=asset(id); if(!a)return; const parts=(a.parts||[]).map(id=>db.parts.find(p=>p.id===id)).filter(Boolean); const m=assetPlanSummary(a.id); const lc=assetLifecycle(a);
-  document.getElementById("assetDetail").innerHTML=`<div class="detail-hero"><div class="detail-top"><div class="detail-identity"><div class="detail-icon">${escapeHtml(a.icon||"◇")}</div><div><p class="eyebrow">${escapeHtml(a.category)}</p><h1>${escapeHtml(a.name)}</h1><div class="detail-id">${a.id}</div><div class="detail-location">⌖ ${escapeHtml(path(a.locationId))}</div></div></div><div class="detail-badges"><span class="health ${healthClass(a)}">${escapeHtml(a.healthLabel||"Healthy")}</span><span class="lifecycle-badge ${lc}">${lifecycleIcon(lc)} ${lifecycleLabel(lc)}</span></div></div><div class="asset-management-bar"><button class="secondary-button" data-edit-current>✎ Edit</button><button class="secondary-button" data-life="active">● Activate</button><button class="secondary-button" data-life="sleeping">☾ Sleep</button><button class="secondary-button" data-life="disabled">⊘ Disable</button><button class="secondary-button" data-life="archived">▣ Archive</button><button class="danger-button" data-delete-current>Delete permanently</button></div><div class="detail-grid">${(a.metrics||[]).map(x=>`<div class="detail-stat"><small>${escapeHtml(x.label)}</small><strong>${escapeHtml(x.value)}</strong></div>`).join("")||`<div class="detail-stat"><small>Status</small><strong>${lifecycleLabel(lc)}</strong></div>`}</div></div>
-  <div class="detail-panels"><section class="detail-panel"><p class="eyebrow">Maintenance program</p><h2>${m.total} active plans</h2><p class="subhead">${lc==="active"?`${m.overdue} overdue · ${m.soon} due soon`:"Reminders paused while this asset is not active."}</p><button class="primary-button" id="openAssetMaintenance">Open MaintenanceView</button></section><section class="detail-panel"><p class="eyebrow">Next action</p><h2>${escapeHtml(a.nextAction||"No action needed")}</h2><p class="subhead">${escapeHtml(a.summary||"")}</p></section><section class="detail-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>${(a.specifications||[]).length?a.specifications.map(s=>`<div class="record-row"><small>${escapeHtml(s.label)}</small><br><strong>${escapeHtml(s.value)}</strong></div>`).join(""):`<p class="subhead">Specifications will be added as this asset is completed.</p>`}</section><section class="detail-panel"><p class="eyebrow">Parts & ordering</p><h2>Required items</h2>${parts.length?parts.map(p=>`<div class="part-row"><strong>${escapeHtml(p.name)}</strong><br><small>${escapeHtml(p.partNumber||"No part number")} · ${p.verifiedFitment?"Verified":"Fitment must be verified"}</small></div>`).join(""):`<p class="subhead">No parts linked yet.</p>`}</section><section class="detail-panel"><p class="eyebrow">History</p><h2>Recent activity</h2>${(a.history||[]).length?a.history.map(h=>`<div class="record-row"><small>${escapeHtml(h.date)}</small><br><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.detail)}</small></div>`).join(""):`<p class="subhead">No history entered yet.</p>`}</section><section class="detail-panel"><p class="eyebrow">Permanent identity</p><h2>Core record</h2><div class="record-row"><small>EnView ID</small><br><strong class="detail-id">${a.id}</strong></div><div class="record-row"><small>Location ID</small><br><strong class="detail-id">${a.locationId}</strong></div></section></div>`;
-  document.getElementById("openAssetMaintenance").onclick=()=>{selectedMaintenanceAssetId=a.id;renderMaintenance();showPage("maintenance");};
+function openAsset(id, tab="overview"){
+  const a=asset(id); if(!a)return;
+  const lc=assetLifecycle(a);
+  const tabs=[
+    ["overview","Overview"],["maintenance","Maintenance"],["timeline","Timeline"],["documents","Documents"],
+    ["photos","Photos"],["parts","Parts"],["warranty","Warranty"],["notes","Notes"],["settings","Settings"]
+  ];
+  const metricCards=(a.metrics||[]).map(x=>`<div class="workspace-stat"><small>${escapeHtml(x.label)}</small><strong>${escapeHtml(x.value)}</strong></div>`).join("") || `<div class="workspace-stat"><small>Status</small><strong>${lifecycleLabel(lc)}</strong></div>`;
+  document.getElementById("assetDetail").innerHTML=`
+    <section class="workspace-hero">
+      <div class="workspace-title-row">
+        <div class="workspace-identity"><div class="workspace-icon">${escapeHtml(a.icon||"◇")}</div><div><p class="eyebrow">${escapeHtml(a.category)} workspace</p><h1>${escapeHtml(a.name)}</h1><div class="workspace-meta"><span>${a.id}</span><span>⌖ ${escapeHtml(path(a.locationId))}</span></div></div></div>
+        <div class="workspace-status"><span class="health ${healthClass(a)}">${escapeHtml(a.healthLabel||"Healthy")}</span><span class="lifecycle-badge ${lc}">${lifecycleIcon(lc)} ${lifecycleLabel(lc)}</span></div>
+      </div>
+      <div class="workspace-actions"><button class="primary-button" data-workspace-service>⚒ Record Service</button><button class="secondary-button" data-workspace-note>＋ Add Note</button><button class="secondary-button" data-workspace-receipt>▤ Add Receipt</button><button class="secondary-button" data-edit-current>✎ Edit Asset</button></div>
+      <div class="workspace-stats">${metricCards}</div>
+    </section>
+    <nav class="workspace-tabs">${tabs.map(([key,label])=>`<button class="workspace-tab ${key===tab?"active":""}" data-workspace-tab="${key}">${label}</button>`).join("")}</nav>
+    <section id="workspaceContent" class="workspace-content"></section>`;
+  renderWorkspaceTab(a.id,tab);
+  document.querySelectorAll("[data-workspace-tab]").forEach(b=>b.onclick=()=>openAsset(a.id,b.dataset.workspaceTab));
   document.querySelector("[data-edit-current]").onclick=()=>openAssetModal(a.id);
-  document.querySelectorAll("[data-life]").forEach(b=>b.onclick=()=>{if(b.dataset.life==="sleeping"){openAssetModal(a.id);document.getElementById("assetLifecycle").value="sleeping";}else setAssetLifecycle(a.id,b.dataset.life);});
-  document.querySelector("[data-delete-current]").onclick=()=>deleteAssetPermanently(a.id);
+  document.querySelector("[data-workspace-note]").onclick=()=>addWorkspaceNote(a.id);
+  document.querySelector("[data-workspace-receipt]").onclick=()=>openActionModal("add-receipt",a.id);
+  document.querySelector("[data-workspace-service]").onclick=()=>{
+    const p=db.maintenancePlans.find(x=>x.assetId===a.id&&x.active!==false);
+    if(p) openServiceModal(p.id); else {selectedMaintenanceAssetId=a.id;renderMaintenance();showPage("maintenance");showToast("Add a maintenance plan before recording service.");}
+  };
   showPage("asset-detail");
+}
+
+function renderWorkspaceTab(assetId,tab){
+  const a=asset(assetId), content=document.getElementById("workspaceContent"); if(!a||!content)return;
+  const plans=db.maintenancePlans.filter(p=>p.assetId===a.id);
+  const services=db.serviceHistory.filter(x=>x.assetId===a.id);
+  const receipts=(db.receipts||[]).filter(x=>x.assetId===a.id);
+  const issues=(db.issues||[]).filter(x=>x.assetId===a.id);
+  const docs=(db.documents||[]).filter(x=>x.assetId===a.id);
+  const photos=(db.photos||[]).filter(x=>x.assetId===a.id);
+  const parts=(a.parts||[]).map(id=>db.parts.find(p=>p.id===id)).filter(Boolean);
+  if(tab==="overview"){
+    const m=assetPlanSummary(a.id);
+    content.innerHTML=`<div class="workspace-grid">
+      <article class="workspace-panel workspace-panel-wide"><p class="eyebrow">Next action</p><h2>${escapeHtml(a.nextAction||"No action needed")}</h2><p>${escapeHtml(a.summary||"No summary added.")}</p></article>
+      <article class="workspace-panel"><p class="eyebrow">Maintenance</p><h2>${m.total} active plans</h2><p>${m.overdue} overdue · ${m.soon} due soon</p><button class="text-button" data-jump-tab="maintenance">View maintenance →</button></article>
+      <article class="workspace-panel"><p class="eyebrow">History</p><h2>${services.length+(a.history||[]).length} events</h2><p>${receipts.length} receipts · ${issues.length} open issues</p><button class="text-button" data-jump-tab="timeline">Open timeline →</button></article>
+      <article class="workspace-panel"><p class="eyebrow">Identity</p><h2>${escapeHtml(a.identity?.manufacturer||a.identity?.make||"Manufacturer not entered")}</h2><div class="workspace-records">${Object.entries(a.identity||{}).slice(0,6).map(([k,v])=>`<div><small>${escapeHtml(k.replace(/([A-Z])/g," $1"))}</small><strong>${escapeHtml(v||"Not entered")}</strong></div>`).join("")}</div></article>
+      <article class="workspace-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>${(a.specifications||[]).map(x=>`<div class="record-row"><small>${escapeHtml(x.label)}</small><br><strong>${escapeHtml(x.value)}</strong></div>`).join("")||"<p>No specifications entered.</p>"}</article>
+    </div>`;
+  } else if(tab==="maintenance"){
+    content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Maintenance program</p><h2>${plans.length} plans</h2></div><button class="primary-button" data-workspace-add-plan>＋ Add Plan</button></div>${plans.length?`<div class="maintenance-plan-grid">${plans.map(planCard).join("")}</div>`:`<div class="empty-state"><h2>No maintenance plans</h2><p>Add manufacturer, regulatory, company, or custom preventive-care plans.</p></div>`}`;
+    content.querySelector("[data-workspace-add-plan]").onclick=()=>openPlanModal(null,a.id);
+    content.querySelectorAll("[data-edit-plan]").forEach(b=>b.onclick=()=>openPlanModal(b.dataset.editPlan));
+    content.querySelectorAll("[data-add-trigger]").forEach(b=>b.onclick=()=>openTriggerModal(b.dataset.addTrigger));
+    content.querySelectorAll("[data-record-service]").forEach(b=>b.onclick=()=>openServiceModal(b.dataset.recordService));
+  } else if(tab==="timeline"){
+    const events=[...(a.history||[]).map(x=>({date:x.date,title:x.title,detail:x.detail,type:"Activity"})),...services.map(x=>({date:x.date,title:plan(x.planId)?.name||"Service completed",detail:x.notes||`Service cost $${Number(x.cost||0).toFixed(2)}`,type:"Service"})),...receipts.map(x=>({date:x.date,title:`Receipt — ${x.vendor}`,detail:`$${Number(x.amount||0).toFixed(2)}${x.note?` · ${x.note}`:""}`,type:"Receipt"})),...issues.map(x=>({date:x.date,title:x.title,detail:x.note||x.status,type:"Issue"}))];
+    content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Universal timeline</p><h2>Everything about this asset</h2></div></div><div class="timeline-list">${events.length?events.map(e=>`<article class="timeline-item"><div class="timeline-marker"></div><div><span class="source-badge user">${escapeHtml(e.type)}</span><small>${escapeHtml(e.date)}</small><h3>${escapeHtml(e.title)}</h3><p>${escapeHtml(e.detail||"")}</p></div></article>`).join(""):`<div class="empty-state"><h2>No timeline activity yet</h2></div>`}</div>`;
+  } else if(tab==="documents"){
+    content.innerHTML=workspaceLibraryTab("Documents",docs,"Manuals, receipts, service records, and reference files.","document",a.id);
+    bindWorkspaceLibraryButtons(a.id,"document");
+  } else if(tab==="photos"){
+    content.innerHTML=workspaceLibraryTab("Photos",photos,"Condition photos, labels, serial numbers, and completed work.","photo",a.id);
+    bindWorkspaceLibraryButtons(a.id,"photo");
+  } else if(tab==="parts"){
+    content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Parts & supplies</p><h2>${parts.length} linked items</h2></div><button class="primary-button" data-order-part>Search for Parts</button></div><div class="workspace-list">${parts.length?parts.map(p=>`<article class="workspace-list-card"><div><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.brand||"")} · ${escapeHtml(p.partNumber||"No part number")}</p><small>${p.verifiedFitment?"Verified fitment":"Fitment must be verified"}</small></div><button class="secondary-button" data-part-search="${escapeHtml(`${a.name} ${p.brand||""} ${p.partNumber||p.name}`)}">Search</button></article>`).join(""):`<div class="empty-state"><h2>No parts linked yet</h2></div>`}</div>`;
+    content.querySelector("[data-order-part]").onclick=()=>openActionModal("order-parts",a.id);
+    content.querySelectorAll("[data-part-search]").forEach(b=>b.onclick=()=>window.open(`https://www.google.com/search?q=${encodeURIComponent(b.dataset.partSearch)}`,"_blank","noopener"));
+  } else if(tab==="warranty"){
+    const w=a.warranty||{};
+    content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Coverage</p><h2>Warranty</h2></div><button class="primary-button" data-save-warranty>Save Warranty</button></div><div class="workspace-form card"><label class="field"><span>Provider</span><input id="warrantyProvider" value="${escapeHtml(w.provider||"")}"></label><label class="field"><span>Policy / reference</span><input id="warrantyReference" value="${escapeHtml(w.reference||"")}"></label><label class="field"><span>Start date</span><input id="warrantyStart" type="date" value="${escapeHtml(w.startDate||"")}"></label><label class="field"><span>Expiration date</span><input id="warrantyEnd" type="date" value="${escapeHtml(w.endDate||"")}"></label><label class="field full"><span>Coverage notes</span><textarea id="warrantyNotes" rows="5">${escapeHtml(w.notes||"")}</textarea></label></div>`;
+    content.querySelector("[data-save-warranty]").onclick=()=>{a.warranty={provider:document.getElementById("warrantyProvider").value.trim(),reference:document.getElementById("warrantyReference").value.trim(),startDate:document.getElementById("warrantyStart").value,endDate:document.getElementById("warrantyEnd").value,notes:document.getElementById("warrantyNotes").value.trim()};save();showToast("Warranty saved.");openAsset(a.id,"warranty");};
+  } else if(tab==="notes"){
+    content.innerHTML=`<div class="workspace-section-head"><div><p class="eyebrow">Working knowledge</p><h2>Notes</h2></div><button class="primary-button" data-add-note-tab>＋ Add Note</button></div><div class="workspace-list">${(a.notes||[]).length?a.notes.map(n=>`<article class="workspace-list-card"><div><small>${escapeHtml(n.date)}</small><p>${escapeHtml(n.text)}</p></div></article>`).join(""):`<div class="empty-state"><h2>No notes yet</h2><p>Capture anything worth remembering about this asset.</p></div>`}</div>`;
+    content.querySelector("[data-add-note-tab]").onclick=()=>addWorkspaceNote(a.id,"notes");
+  } else if(tab==="settings"){
+    const lc=assetLifecycle(a);
+    content.innerHTML=`<div class="workspace-grid"><article class="workspace-panel workspace-panel-wide"><p class="eyebrow">Asset lifecycle</p><h2>${lifecycleLabel(lc)}</h2><p>Sleeping and disabled assets keep their history but pause maintenance reminders.</p><div class="workspace-actions"><button class="secondary-button" data-life="active">● Activate</button><button class="secondary-button" data-life="sleeping">☾ Sleep</button><button class="secondary-button" data-life="disabled">⊘ Disable</button><button class="secondary-button" data-life="archived">▣ Archive</button></div></article><article class="workspace-panel"><p class="eyebrow">Permanent identity</p><h2>Core record</h2><div class="record-row"><small>EnView ID</small><br><strong class="detail-id">${a.id}</strong></div><div class="record-row"><small>Location ID</small><br><strong class="detail-id">${a.locationId}</strong></div></article><article class="workspace-panel danger-zone"><p class="eyebrow">Danger zone</p><h2>Permanent deletion</h2><p>This cannot be undone.</p><button class="danger-button" data-delete-current>Delete permanently</button></article></div>`;
+    content.querySelectorAll("[data-life]").forEach(b=>b.onclick=()=>{if(b.dataset.life==="sleeping"){openAssetModal(a.id);document.getElementById("assetLifecycle").value="sleeping";}else setAssetLifecycle(a.id,b.dataset.life);});
+    content.querySelector("[data-delete-current]").onclick=()=>deleteAssetPermanently(a.id);
+  }
+  content.querySelectorAll("[data-jump-tab]").forEach(b=>b.onclick=()=>openAsset(a.id,b.dataset.jumpTab));
+}
+
+function workspaceLibraryTab(title,items,description,type,assetId){
+  return `<div class="workspace-section-head"><div><p class="eyebrow">Asset library</p><h2>${title}</h2><p>${description}</p></div><button class="primary-button" data-add-library="${type}">＋ Add ${type==="photo"?"Photo":"Document"}</button></div><div class="workspace-list">${items.length?items.map(x=>`<article class="workspace-list-card"><div><small>${escapeHtml(x.date||"")}</small><h3>${escapeHtml(x.name)}</h3><p>${escapeHtml(x.note||x.url||"")}</p></div>${x.url?`<a class="secondary-button" href="${escapeHtml(x.url)}" target="_blank" rel="noopener">Open</a>`:""}</article>`).join(""):`<div class="empty-state"><h2>No ${title.toLowerCase()} yet</h2><p>Add the first item to this asset workspace.</p></div>`}</div>`;
+}
+function bindWorkspaceLibraryButtons(assetId,type){
+  const b=document.querySelector(`[data-add-library="${type}"]`); if(!b)return;
+  b.onclick=()=>{const name=prompt(`Name this ${type}:`);if(!name)return;const url=prompt("Optional web link or shared-file URL:")||"";const note=prompt("Optional note:")||"";const row={id:uid(type==="photo"?"PHT":"DOC"),assetId,name,url,note,date:new Date().toISOString().slice(0,10)};(type==="photo"?db.photos:db.documents).unshift(row);asset(assetId).history.unshift({date:new Date().toLocaleDateString(),title:`${type==="photo"?"Photo":"Document"} added`,detail:name});save();showToast(`${type==="photo"?"Photo":"Document"} saved.`);openAsset(assetId,type==="photo"?"photos":"documents");};
+}
+function addWorkspaceNote(assetId,returnTab="notes"){
+  const text=prompt("Add a note about this asset:"); if(!text?.trim())return; const a=asset(assetId);a.notes||=[];a.notes.unshift({id:uid("NOTE"),date:new Date().toLocaleDateString(),text:text.trim()});a.history||=[];a.history.unshift({date:new Date().toLocaleDateString(),title:"Note added",detail:text.trim()});save();showToast("Note added.");openAsset(assetId,returnTab);
 }
 
 function showPage(name){
@@ -384,10 +469,10 @@ function showToast(message){
 }
 function assetOptions(selected=""){ return db.assets.filter(a=>assetLifecycle(a)!=="archived").map(a=>`<option value="${a.id}" ${a.id===selected?"selected":""}>${escapeHtml(a.name)}</option>`).join(""); }
 function locationOptions(selected=""){ return db.locations.map(l=>`<option value="${l.id}" ${l.id===selected?"selected":""}>${escapeHtml(l.path.join(" · "))}</option>`).join(""); }
-function openActionModal(type){
+function openActionModal(type, selectedAssetId=""){
   const modal=document.getElementById("actionModal"), title=document.getElementById("actionModalTitle"), body=document.getElementById("actionModalBody"), save=document.getElementById("saveActionButton");
   save.dataset.action=type;
-  const first=db.assets.find(a=>assetLifecycle(a)!=="archived")?.id||"";
+  const first=selectedAssetId||db.assets.find(a=>assetLifecycle(a)!=="archived")?.id||"";
   const configs={
     "move-asset": ["Move Asset",`<div class="form-grid"><label class="field full"><span>Asset</span><select id="actionAsset">${assetOptions(first)}</select></label><label class="field full"><span>New location</span><select id="actionLocation">${locationOptions()}</select></label></div>`,"Move asset"],
     "add-receipt": ["Add Receipt",`<div class="form-grid"><label class="field full"><span>Asset</span><select id="actionAsset">${assetOptions(first)}</select></label><label class="field"><span>Vendor</span><input id="actionVendor" placeholder="Vendor name"></label><label class="field"><span>Amount</span><input id="actionAmount" type="number" min="0" step="0.01"></label><label class="field full"><span>Note</span><textarea id="actionNote" rows="3"></textarea></label></div>`,"Save receipt"],

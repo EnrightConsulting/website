@@ -1,19 +1,14 @@
-# EnView 0.8.1 — Stabilization
+# EnView v0.9.0 — Asset Workspace
 
-This release fixes the startup/event-binding failure in v0.8.0 and connects the visible Asset Center controls.
+This release replaces the old asset detail screen with a connected full-page Asset Workspace.
 
-## Fixed and verified
-- Add Asset opens from Asset Center and Quick Action
-- Asset forms save, edit, archive, disable, sleep, restore, and permanently delete
-- All six Quick Action buttons now perform a real action
-- Log Service opens a real service workflow
-- Move Asset updates the permanent asset record
-- Add Receipt stores a receipt and adds asset history
-- Order Parts opens a focused web search
-- Report Issue creates an open issue and dashboard priority
-- Dashboard View All, profile/settings, navigation, search, filters, and modal close controls are connected
-- Existing v0.8.0 and v0.7.2 browser data is migrated automatically
-- Startup errors are shown visibly instead of silently leaving controls disconnected
+## Included
+- Overview, Maintenance, Timeline, Documents, Photos, Parts, Warranty, Notes, and Settings tabs
+- Record Service, Add Note, Add Receipt, and Edit Asset actions
+- Universal asset timeline combining activity, service, receipts, and issues
+- Editable warranty records
+- Asset-linked document and photo metadata with optional URLs
+- Lifecycle controls and protected permanent deletion
+- Migration from v0.8.1, v0.8.0, and v0.7.2 browser data
 
-## Deployment
-Upload the contents of this folder to the root of the EnrightConsulting/website repository. Cloudflare Pages will deploy automatically.
+Upload the contents of this folder to the EnView GitHub repository / Cloudflare Pages project.
