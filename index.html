@@ -27,7 +27,7 @@
     </nav>
     <div class="sidebar-footer">
       <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
-      <div class="version">EnView 0.8.0 · Asset Center</div>
+      <div class="version">EnView 0.8.1 · Stabilization</div>
     </div>
   </aside>
 
@@ -46,7 +46,7 @@
         </div>
 
         <section class="attention-panel">
-          <div class="section-head"><div><p class="eyebrow">Today</p><h2>Priorities</h2></div><button class="text-button">View all</button></div>
+          <div class="section-head"><div><p class="eyebrow">Today</p><h2>Priorities</h2></div><button class="text-button" data-page-target="maintenance">View all</button></div>
           <div id="priorityGrid" class="priority-grid"></div>
         </section>
 
@@ -126,14 +126,14 @@
   <div class="modal">
     <div class="modal-head"><div><p class="eyebrow">Fast capture</p><h2>What do you want to do?</h2></div><button class="close-button" data-close>×</button></div>
     <div class="quick-grid">
-      <button><span>⚒</span><strong>Log Service</strong><small>Record work in under 30 seconds</small></button>
-      <button data-quick-add-asset><span>◇</span><strong>Add Asset</strong><small>Create a permanent EnView record</small></button>
-      <button><span>⌖</span><strong>Move Asset</strong><small>Update where something lives</small></button>
-      <button><span>▤</span><strong>Add Receipt</strong><small>Attach a purchase to an asset</small></button>
-      <button><span>▣</span><strong>Order Parts</strong><small>Open saved retailer searches</small></button>
-      <button><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
+      <button data-quick-action="log-service"><span>⚒</span><strong>Log Service</strong><small>Record work in under 30 seconds</small></button>
+      <button data-quick-action="add-asset"><span>◇</span><strong>Add Asset</strong><small>Create a permanent EnView record</small></button>
+      <button data-quick-action="move-asset"><span>⌖</span><strong>Move Asset</strong><small>Update where something lives</small></button>
+      <button data-quick-action="add-receipt"><span>▤</span><strong>Add Receipt</strong><small>Attach a purchase to an asset</small></button>
+      <button data-quick-action="order-parts"><span>▣</span><strong>Order Parts</strong><small>Open saved retailer searches</small></button>
+      <button data-quick-action="report-issue"><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
     </div>
-    <p class="modal-note">EnView 0.8.0 adds Asset Center lifecycle controls, quick asset creation, sleep schedules, archive, and protected permanent deletion.</p>
+    <p class="modal-note">EnView 0.8.1 connects and verifies every visible Asset Center and Quick Action control.</p>
   </div>
 </div>
 

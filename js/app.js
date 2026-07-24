@@ -1,4 +1,4 @@
-const STORAGE_KEY = "enview-v0.8.0";
+const STORAGE_KEY = "enview-v0.8.1";
 const POWERVIEW_URL = "http://192.168.1.54:8084/#mission";
 let db = null;
 let baseData = null;
@@ -20,7 +20,7 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.7.2");
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
@@ -111,7 +111,15 @@ function injectMaintenanceDialogs(){
       <label class="check-row full"><input type="checkbox" id="assetFavorite"><span>Add to favorites</span></label>
     </div>
     <div class="modal-actions"><button class="secondary-button" data-close-asset>Cancel</button><button class="primary-button" id="saveAssetButton">Save asset</button></div>
-  </div></div>`);
+  </div></div>
+
+  <div class="modal-backdrop" id="actionModal"><div class="modal maintenance-modal compact-modal">
+    <div class="modal-head"><div><p class="eyebrow">Quick Action</p><h2 id="actionModalTitle">Action</h2></div><button class="close-button" data-close-action>×</button></div>
+    <div id="actionModalBody"></div>
+    <div class="modal-actions"><button class="secondary-button" data-close-action>Cancel</button><button class="primary-button" id="saveActionButton">Save</button></div>
+  </div></div>
+
+  <div class="toast" id="appToast" role="status" aria-live="polite"></div>`);
 }
 
 function loc(id){ return db.locations.find(x=>x.id===id); }
@@ -367,22 +375,91 @@ function showPage(name){
   document.getElementById("sidebar").classList.remove("open"); window.scrollTo({top:0,behavior:"smooth"});
 }
 
-document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{if(b.dataset.page==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.page);});
-document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>{if(b.dataset.pageTarget==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.pageTarget);});
-document.getElementById("assetBack").onclick=()=>showPage(lastListPage);
-document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
-document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetCategoryFilter=b.dataset.filter;renderAssetCenter();});
-document.querySelectorAll("[data-lifecycle-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-lifecycle-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetLifecycleFilter=b.dataset.lifecycleFilter;renderAssetCenter();});
-
-const quick=document.getElementById("quickModal");
-document.querySelectorAll("[data-quick-add-asset]").forEach(b=>b.onclick=()=>{quick.classList.remove("open");openAssetModal();});
-document.querySelectorAll("[data-open-quick]").forEach(b=>b.onclick=()=>quick.classList.add("open")); document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>quick.classList.remove("open")); quick.onclick=e=>{if(e.target===quick)quick.classList.remove("open")};
-document.addEventListener("click",e=>{if(e.target.matches("[data-close-plan]"))closeModal("planModal");if(e.target.matches("[data-close-trigger]"))closeModal("triggerModal");if(e.target.matches("[data-close-service]"))closeModal("serviceModal");if(e.target.matches("[data-close-asset]"))closeModal("assetModal");if(e.target.classList.contains("modal-backdrop"))e.target.classList.remove("open");});
-document.getElementById("saveAssetButton").onclick=saveAssetFromModal; document.getElementById("savePlanButton").onclick=savePlanFromModal; document.getElementById("saveTriggerButton").onclick=saveTriggerFromModal; document.getElementById("saveServiceButton").onclick=saveServiceFromModal; document.getElementById("triggerType").onchange=updateTriggerFields;
-
-document.getElementById("todayDate").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date());
-const input=document.getElementById("globalSearch"),results=document.getElementById("searchResults");
-function search(q){if(!q){results.classList.remove("open");return}const n=q.toLowerCase();const hits=[...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(n)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(n)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>openLocation(l.id)})),...db.maintenancePlans.filter(p=>JSON.stringify(p).toLowerCase().includes(n)).map(p=>({title:p.name,sub:`Maintenance · ${asset(p.assetId)?.shortName||p.assetId}`,go:()=>{selectedMaintenanceAssetId=p.assetId;renderMaintenance();showPage("maintenance")}}))].slice(0,8);results.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.sub)}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;results.classList.add("open");results.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();results.classList.remove("open");input.value=""});}
-input.oninput=e=>search(e.target.value.trim()); document.addEventListener("click",e=>{if(!results.contains(e.target)&&e.target!==input)results.classList.remove("open")}); document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();input.focus()}if(e.key==="Escape"){quick.classList.remove("open");results.classList.remove("open");["planModal","triggerModal","serviceModal","assetModal"].forEach(closeModal)}});
-
-init();
+function closeModal(id){ document.getElementById(id)?.classList.remove("open"); }
+function showToast(message){
+  const toast=document.getElementById("appToast");
+  if(!toast){ alert(message); return; }
+  toast.textContent=message; toast.classList.add("show");
+  clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>toast.classList.remove("show"),2600);
+}
+function assetOptions(selected=""){ return db.assets.filter(a=>assetLifecycle(a)!=="archived").map(a=>`<option value="${a.id}" ${a.id===selected?"selected":""}>${escapeHtml(a.name)}</option>`).join(""); }
+function locationOptions(selected=""){ return db.locations.map(l=>`<option value="${l.id}" ${l.id===selected?"selected":""}>${escapeHtml(l.path.join(" · "))}</option>`).join(""); }
+function openActionModal(type){
+  const modal=document.getElementById("actionModal"), title=document.getElementById("actionModalTitle"), body=document.getElementById("actionModalBody"), save=document.getElementById("saveActionButton");
+  save.dataset.action=type;
+  const first=db.assets.find(a=>assetLifecycle(a)!=="archived")?.id||"";
+  const configs={
+    "move-asset": ["Move Asset",`<div class="form-grid"><label class="field full"><span>Asset</span><select id="actionAsset">${assetOptions(first)}</select></label><label class="field full"><span>New location</span><select id="actionLocation">${locationOptions()}</select></label></div>`,"Move asset"],
+    "add-receipt": ["Add Receipt",`<div class="form-grid"><label class="field full"><span>Asset</span><select id="actionAsset">${assetOptions(first)}</select></label><label class="field"><span>Vendor</span><input id="actionVendor" placeholder="Vendor name"></label><label class="field"><span>Amount</span><input id="actionAmount" type="number" min="0" step="0.01"></label><label class="field full"><span>Note</span><textarea id="actionNote" rows="3"></textarea></label></div>`,"Save receipt"],
+    "order-parts": ["Order Parts",`<div class="form-grid"><label class="field full"><span>Asset</span><select id="actionAsset">${assetOptions(first)}</select></label><label class="field full"><span>Part or search terms</span><input id="actionQuery" placeholder="Example: 2021 Tiguan oil filter"></label></div>`,"Search parts"],
+    "report-issue": ["Report Issue",`<div class="form-grid"><label class="field full"><span>Asset</span><select id="actionAsset">${assetOptions(first)}</select></label><label class="field full"><span>Issue</span><input id="actionIssue" placeholder="Describe the problem"></label><label class="field full"><span>Details</span><textarea id="actionNote" rows="3"></textarea></label></div>`,"Save issue"]
+  };
+  const c=configs[type]; if(!c)return;
+  title.textContent=c[0]; body.innerHTML=c[1]; save.textContent=c[2]; modal.classList.add("open");
+}
+function saveQuickAction(){
+  const type=document.getElementById("saveActionButton").dataset.action;
+  const assetId=document.getElementById("actionAsset")?.value, a=asset(assetId);
+  if(!a){ alert("Please choose an asset."); return; }
+  if(type==="move-asset"){
+    a.locationId=document.getElementById("actionLocation").value;
+    a.history||=[]; a.history.unshift({date:new Date().toLocaleDateString(),title:"Asset moved",detail:`Moved to ${path(a.locationId)}`});
+    save(); closeModal("actionModal"); renderAll(); showToast(`${a.shortName||a.name} moved successfully.`);
+  }else if(type==="add-receipt"){
+    const vendor=document.getElementById("actionVendor").value.trim(), amount=document.getElementById("actionAmount").value;
+    if(!vendor){alert("Please enter a vendor.");return;}
+    db.receipts||=[]; db.receipts.unshift({id:uid("RCT"),assetId,vendor,amount:Number(amount||0),note:document.getElementById("actionNote").value.trim(),date:new Date().toISOString().slice(0,10)});
+    a.history||=[]; a.history.unshift({date:new Date().toLocaleDateString(),title:`Receipt added — ${vendor}`,detail:amount?`$${Number(amount).toFixed(2)}`:"Amount not entered"});
+    save(); closeModal("actionModal"); renderAll(); showToast("Receipt saved.");
+  }else if(type==="order-parts"){
+    const q=document.getElementById("actionQuery").value.trim(); if(!q){alert("Enter a part or search term.");return;}
+    closeModal("actionModal"); window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`,"_blank","noopener");
+  }else if(type==="report-issue"){
+    const issue=document.getElementById("actionIssue").value.trim(); if(!issue){alert("Please describe the issue.");return;}
+    db.issues||=[]; db.issues.unshift({id:uid("ISS"),assetId,title:issue,note:document.getElementById("actionNote").value.trim(),status:"open",date:new Date().toISOString().slice(0,10)});
+    a.status="attention"; a.healthLabel="Needs Attention"; a.nextAction=issue; a.history||=[]; a.history.unshift({date:new Date().toLocaleDateString(),title:"Issue reported",detail:issue});
+    save(); closeModal("actionModal"); renderAll(); showToast("Issue saved and added to priorities.");
+  }
+}
+function handleQuickAction(type){
+  closeModal("quickModal");
+  if(type==="add-asset") return openAssetModal();
+  if(type==="log-service"){
+    const p=db.maintenancePlans.find(p=>p.active!==false && assetLifecycle(asset(p.assetId)||{})!=="archived");
+    if(p){ selectedMaintenanceAssetId=p.assetId; renderMaintenance(); showPage("maintenance"); openServiceModal(p.id); }
+    else { showPage("maintenance"); showToast("Add a maintenance plan before logging service."); }
+    return;
+  }
+  openActionModal(type);
+}
+function setupBindings(){
+  document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{if(b.dataset.page==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.page);});
+  document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>{if(b.dataset.pageTarget==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.pageTarget);});
+  document.getElementById("assetBack").onclick=()=>showPage(lastListPage);
+  document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
+  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetCategoryFilter=b.dataset.filter;renderAssetCenter();});
+  document.querySelectorAll("[data-lifecycle-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-lifecycle-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetLifecycleFilter=b.dataset.lifecycleFilter;renderAssetCenter();});
+  const quick=document.getElementById("quickModal");
+  document.querySelectorAll("[data-open-quick]").forEach(b=>b.onclick=()=>quick.classList.add("open"));
+  document.querySelectorAll("[data-quick-action]").forEach(b=>b.onclick=()=>handleQuickAction(b.dataset.quickAction));
+  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>quick.classList.remove("open")); quick.onclick=e=>{if(e.target===quick)quick.classList.remove("open")};
+  document.addEventListener("click",e=>{if(e.target.closest("[data-close-plan]"))closeModal("planModal");if(e.target.closest("[data-close-trigger]"))closeModal("triggerModal");if(e.target.closest("[data-close-service]"))closeModal("serviceModal");if(e.target.closest("[data-close-asset]"))closeModal("assetModal");if(e.target.closest("[data-close-action]"))closeModal("actionModal");if(e.target.classList.contains("modal-backdrop"))e.target.classList.remove("open");});
+  document.getElementById("saveAssetButton").onclick=saveAssetFromModal;
+  document.getElementById("savePlanButton").onclick=savePlanFromModal;
+  document.getElementById("saveTriggerButton").onclick=saveTriggerFromModal;
+  document.getElementById("saveServiceButton").onclick=saveServiceFromModal;
+  document.getElementById("saveActionButton").onclick=saveQuickAction;
+  document.getElementById("triggerType").onchange=updateTriggerFields;
+  document.querySelector(".profile-button").onclick=()=>showPage("settings");
+  document.getElementById("todayDate").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date());
+  const input=document.getElementById("globalSearch"),results=document.getElementById("searchResults");
+  function search(q){if(!q){results.classList.remove("open");return}const n=q.toLowerCase();const hits=[...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(n)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(n)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>openLocation(l.id)})),...db.maintenancePlans.filter(p=>JSON.stringify(p).toLowerCase().includes(n)).map(p=>({title:p.name,sub:`Maintenance · ${asset(p.assetId)?.shortName||p.assetId}`,go:()=>{selectedMaintenanceAssetId=p.assetId;renderMaintenance();showPage("maintenance")}}))].slice(0,8);results.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.sub)}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;results.classList.add("open");results.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();results.classList.remove("open");input.value=""});}
+  input.oninput=e=>search(e.target.value.trim());
+  document.addEventListener("click",e=>{if(!results.contains(e.target)&&e.target!==input)results.classList.remove("open")});
+  document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();input.focus()}if(e.key==="Escape"){quick.classList.remove("open");results.classList.remove("open");["planModal","triggerModal","serviceModal","assetModal","actionModal"].forEach(closeModal)}});
+}
+async function bootstrap(){
+  try{ await init(); setupBindings(); }
+  catch(error){ console.error("EnView failed to start",error); document.body.insertAdjacentHTML("beforeend",`<div class="startup-error"><strong>EnView could not start.</strong><br>${escapeHtml(error.message)}</div>`); }
+}
+bootstrap();
