@@ -1,13 +1,16 @@
-# EnView v0.10.0 — Connected Services
+# EnView v0.11.0 — Cortex
 
-This release introduces the reusable Connected Services framework and proves it with PowerView.
+This release introduces the first functional EnView Cortex integration.
 
-## PowerView test connection
-- Stores an editable dashboard URL in browser storage.
-- Tests the stable `/api/live` endpoint.
-- Displays battery, solar, load, grid, and garage temperature when the API is reachable.
-- Opens the complete PowerView dashboard in a new browser tab instead of embedding it.
-- Adds a Connected Services manager and an asset-level Connections tab for energy assets.
+## What changed
+
+- Adds a Daily Briefing status strip.
+- Replaces the static principle card with a live Today's Insight card.
+- Ranks active asset exceptions by urgency.
+- Provides a recommended action and expandable Why explanation.
+- Preserves data from the v0.10.0 browser storage key during migration.
+- Keeps existing Assets, Maintenance, Connected Services, and PowerView behavior intact.
 
 ## Deployment
-Upload the contents of this folder to the repository root used by Cloudflare Pages. Existing browser data from v0.9.2 and earlier is migrated automatically.
+
+Upload the contents of this package to the root of the GitHub repository used by Cloudflare Pages. Preserve the included folder structure.

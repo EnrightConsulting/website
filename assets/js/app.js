@@ -1,4 +1,5 @@
-const STORAGE_KEY = "enview-v0.10.0";
+const STORAGE_KEY = "enview-v0.11.0";
+const PREVIOUS_STORAGE_KEY = "enview-v0.10.0";
 const POWERVIEW_CONFIG_KEY = "enview-powerview-url";
 const DEFAULT_POWERVIEW_URL = "https://hop-charity-determines-roulette.trycloudflare.com/#mission";
 let powerViewRefreshTimer = null;
@@ -27,7 +28,7 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.9.2") || localStorage.getItem("enview-v0.9.1") || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(PREVIOUS_STORAGE_KEY) || localStorage.getItem("enview-v0.9.2") || localStorage.getItem("enview-v0.9.1") || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
@@ -183,6 +184,24 @@ function assetCard(a){
   return `<article class="asset-card-wrap ${lc}"><button class="asset-card" data-open-asset="${a.id}"><div class="asset-head"><span class="asset-icon">${escapeHtml(a.icon||"◇")}</span><span class="health ${healthClass(a)}">${escapeHtml(a.healthLabel||"Healthy")}</span></div><h3>${escapeHtml(a.shortName||a.name)}</h3><div class="location">⌖ ${escapeHtml(path(a.locationId))}</div><div class="asset-lifecycle ${lc}">${lifecycleIcon(lc)} ${lifecycleLabel(lc)}${lc==="sleeping"&&a.sleepUntil?` until ${new Date(a.sleepUntil+"T12:00:00").toLocaleDateString()}`:""}</div><div class="metric"><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(metric.value)}</strong></div></button><button class="asset-card-menu" title="Manage asset" data-manage-asset="${a.id}">•••</button></article>`;
 }
 
+function renderCortexBriefing(){
+  if(!window.EnViewCortex) return;
+  const briefing=window.EnViewCortex.buildBriefing(db,path);
+  const hero=briefing.hero;
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+  set("briefingHealth",briefing.overallHealth);
+  set("briefingPriorityCount",briefing.priorityCount);
+  set("briefingRecommendationCount",briefing.recommendationCount);
+  set("cortexTitle",hero.title);
+  set("cortexSummary",hero.summary);
+  set("cortexRecommendation",hero.recommendation);
+  set("cortexPriority",hero.priority);
+  const why=document.getElementById("cortexWhy");
+  if(why) why.innerHTML=(hero.why||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");
+  const card=document.getElementById("cortexHeroCard");
+  if(card){card.onclick=e=>{if(e.target.closest("#cortexWhyButton"))return;if(hero.assetId)openAsset(hero.assetId);};}
+}
+
 function renderAll(){
   const active=activeAssets();
   const attention=active.filter(a=>a.status!=="healthy");
@@ -197,6 +216,7 @@ function renderAll(){
   const healthDetail=document.getElementById("dashboardHealthDetail");
   if(healthTitle) healthTitle.textContent=attention.length?`${healthyCount} ${healthyCount===1?"asset is":"assets are"} healthy.`:"Everything is healthy.";
   if(healthDetail) healthDetail.textContent=attention.length?`${attention.length} ${attention.length===1?"asset is":"assets are"} surfaced above so you can act without searching through the system.`:`EnView is monitoring ${active.length} active ${active.length===1?"asset":"assets"}.`;
+  renderCortexBriefing();
   document.getElementById("priorityGrid").innerHTML=priorities.length?priorities.map(a=>`<button class="priority-item" data-open-asset="${a.id}">${statusDot(a)}<span class="priority-copy"><strong>${escapeHtml(a.nextAction)}</strong><small>${escapeHtml(a.shortName)} · ${escapeHtml(path(a.locationId))}</small></span><span>›</span></button>`).join(""):`<div class="empty-priority"><strong>Nothing urgent today</strong><span>EnView will place new priorities here as they arise.</span></div>`;
   const favs=activeAssets().filter(a=>a.favorite);
   document.getElementById("favoriteGrid").innerHTML=favs.map(assetCard).join("");
@@ -654,6 +674,8 @@ function setupBindings(){
   document.getElementById("triggerType").onchange=updateTriggerFields;
   document.querySelector(".profile-button").onclick=()=>showPage("settings");
   document.getElementById("todayDate").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date());
+  const whyButton=document.getElementById("cortexWhyButton"),whyList=document.getElementById("cortexWhy");
+  if(whyButton&&whyList) whyButton.onclick=e=>{e.stopPropagation();const open=whyButton.getAttribute("aria-expanded")==="true";whyButton.setAttribute("aria-expanded",String(!open));whyButton.textContent=open?"Why?":"Hide why";whyList.hidden=open;};
   const input=document.getElementById("globalSearch"),results=document.getElementById("searchResults");
   function search(q){if(!q){results.classList.remove("open");return}const n=q.toLowerCase();const hits=[...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(n)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(n)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>openLocation(l.id)})),...db.maintenancePlans.filter(p=>JSON.stringify(p).toLowerCase().includes(n)).map(p=>({title:p.name,sub:`Maintenance · ${asset(p.assetId)?.shortName||p.assetId}`,go:()=>{selectedMaintenanceAssetId=p.assetId;renderMaintenance();showPage("maintenance")}}))].slice(0,8);results.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.sub)}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;results.classList.add("open");results.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();results.classList.remove("open");input.value=""});}
   input.oninput=e=>search(e.target.value.trim());

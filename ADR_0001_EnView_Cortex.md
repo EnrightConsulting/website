@@ -1,11 +1,18 @@
-# ADR-0001 EnView Cortex
+# ADR-0001: EnView Cortex
 
-Decision: Introduce EnView Cortex as the central intelligence engine.
+**Status:** Accepted  
+**Release:** v0.11.0
 
-Why:
-- Decouple dashboard from data sources.
-- Standardize insights.
-- Enable future Weather, PowerView, Finance, Maintenance and Network intelligence.
+## Decision
+Introduce EnView Cortex as the central intelligence layer that converts asset exceptions into ranked insights for the dashboard.
 
-Status: Accepted
-Version: v0.11.0
+## Why
+- The dashboard should answer what matters today rather than only display records.
+- Every future module needs a common insight format.
+- Ranking and explanation should be separate from the underlying asset data.
+
+## Initial implementation
+v0.11.0 reads active EnView assets, converts service and attention states into standard insights, scores them, and supplies the Daily Briefing and Today's Insight card.
+
+## Future extension
+Weather, PowerView, FinanceView, NetworkView, and other Connected Services will publish insights into the same Cortex model.

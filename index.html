@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#101828" />
-  <title>EnView 0.10.0 — Connected Services</title>
+  <title>EnView 0.11.0 — Cortex</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
@@ -29,7 +29,7 @@
     </nav>
     <div class="sidebar-footer">
       <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
-      <div class="version"><strong>EnView v0.10.0</strong><span>Connected Services</span></div>
+      <div class="version"><strong>EnView v0.11.0</strong><span>Cortex Intelligence</span></div>
     </div>
   </aside>
 
@@ -46,6 +46,11 @@
           <div><p class="eyebrow" id="todayDate"></p><h1>Good morning, Kelly</h1><p class="subhead" id="dashboardSummary">Here is what deserves your attention today.</p></div>
           <button class="primary-button" data-open-quick>＋ Quick Action</button>
         </div>
+
+        <section class="briefing-strip" aria-label="Daily briefing">
+          <div><span class="briefing-label">Today's briefing</span><strong id="briefingHealth">Cortex is reviewing your assets.</strong></div>
+          <div class="briefing-metrics"><span><strong id="briefingPriorityCount">0</strong> priorities</span><span><strong id="briefingRecommendationCount">0</strong> recommendations</span></div>
+        </section>
 
         <section class="attention-panel">
           <div class="section-head"><div><p class="eyebrow">Today</p><h2>Priorities</h2></div><button class="text-button" data-page-target="maintenance">View all</button></div>
@@ -64,7 +69,14 @@
             <p id="dashboardHealthDetail">EnView is checking your active assets and bringing only the exceptions forward.</p>
             <button class="text-button" data-page-target="assets">View all assets →</button>
           </article>
-          <article class="card principle-card"><p class="eyebrow light">EnView principle</p><h2>Capture once.<br/>Use everywhere.</h2><p>Record information once, then use it across Dashboard, Assets, Maintenance, Finance, PowerView, NetworkView, and OperationsView.</p></article>
+          <article class="card cortex-card" id="cortexHeroCard">
+            <div class="cortex-card-head"><div><p class="eyebrow light">Today's insight</p><span class="cortex-priority" id="cortexPriority">Cortex</span></div><span class="cortex-mark">C</span></div>
+            <h2 id="cortexTitle">Cortex is reviewing your assets.</h2>
+            <p id="cortexSummary">Your highest-value insight will appear here.</p>
+            <div class="cortex-recommendation"><span>Recommended action</span><strong id="cortexRecommendation">No action yet.</strong></div>
+            <button class="why-button" id="cortexWhyButton" type="button" aria-expanded="false">Why?</button>
+            <ul class="cortex-why" id="cortexWhy" hidden></ul>
+          </article>
         </section>
 
         <section class="dashboard-section">
@@ -132,11 +144,12 @@
       <button data-quick-action="order-parts"><span>▣</span><strong>Order Parts</strong><small>Open saved retailer searches</small></button>
       <button data-quick-action="report-issue"><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
     </div>
-    <p class="modal-note">EnView v0.10.0 connects external services while letting each specialized application keep its own interface.</p>
+    <p class="modal-note">EnView v0.11.0 uses Cortex to rank insights and surface what matters today.</p>
   </div>
 </div>
 
 <div class="search-results" id="searchResults"></div>
+<script src="assets/js/cortex/cortex.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
