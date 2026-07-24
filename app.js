@@ -1,4 +1,4 @@
-const STORAGE_KEY = "enview-v0.9.0";
+const STORAGE_KEY = "enview-v0.9.1";
 const POWERVIEW_URL = "http://192.168.1.54:8084/#mission";
 let db = null;
 let baseData = null;
@@ -20,7 +20,7 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
@@ -177,8 +177,20 @@ function assetCard(a){
 }
 
 function renderAll(){
-  const priorities=activeAssets().filter(a=>a.status!=="healthy").slice(0,4);
-  document.getElementById("priorityGrid").innerHTML=priorities.map(a=>`<button class="priority-item" data-open-asset="${a.id}">${statusDot(a)}<span class="priority-copy"><strong>${escapeHtml(a.nextAction)}</strong><small>${escapeHtml(a.shortName)} · ${escapeHtml(path(a.locationId))}</small></span><span>›</span></button>`).join("");
+  const active=activeAssets();
+  const attention=active.filter(a=>a.status!=="healthy");
+  const priorities=attention.slice(0,4);
+  const summary=document.getElementById("dashboardSummary");
+  if(summary){
+    const p=priorities.length;
+    summary.textContent=p?`You have ${p} ${p===1?"priority":"priorities"} today. ${attention.length} ${attention.length===1?"asset needs":"assets need"} attention.`:"No urgent priorities today. All active assets are healthy.";
+  }
+  const healthyCount=active.filter(a=>a.status==="healthy").length;
+  const healthTitle=document.getElementById("dashboardHealthTitle");
+  const healthDetail=document.getElementById("dashboardHealthDetail");
+  if(healthTitle) healthTitle.textContent=attention.length?`${healthyCount} ${healthyCount===1?"asset is":"assets are"} healthy.`:"Everything is healthy.";
+  if(healthDetail) healthDetail.textContent=attention.length?`${attention.length} ${attention.length===1?"asset is":"assets are"} surfaced above so you can act without searching through the system.`:`EnView is monitoring ${active.length} active ${active.length===1?"asset":"assets"}.`;
+  document.getElementById("priorityGrid").innerHTML=priorities.length?priorities.map(a=>`<button class="priority-item" data-open-asset="${a.id}">${statusDot(a)}<span class="priority-copy"><strong>${escapeHtml(a.nextAction)}</strong><small>${escapeHtml(a.shortName)} · ${escapeHtml(path(a.locationId))}</small></span><span>›</span></button>`).join(""):`<div class="empty-priority"><strong>Nothing urgent today</strong><span>EnView will place new priorities here as they arise.</span></div>`;
   const favs=activeAssets().filter(a=>a.favorite);
   document.getElementById("favoriteGrid").innerHTML=favs.map(assetCard).join("");
   document.getElementById("favoritesPageGrid").innerHTML=favs.map(assetCard).join("");
@@ -369,7 +381,7 @@ function openAsset(id, tab="overview"){
   document.getElementById("assetDetail").innerHTML=`
     <section class="workspace-hero">
       <div class="workspace-title-row">
-        <div class="workspace-identity"><div class="workspace-icon">${escapeHtml(a.icon||"◇")}</div><div><p class="eyebrow">${escapeHtml(a.category)} workspace</p><h1>${escapeHtml(a.name)}</h1><div class="workspace-meta"><span>${a.id}</span><span>⌖ ${escapeHtml(path(a.locationId))}</span></div></div></div>
+        <div class="workspace-identity"><div class="workspace-icon">${escapeHtml(a.icon||"◇")}</div><div><p class="eyebrow">${escapeHtml(a.category)} asset profile</p><h1>${escapeHtml(a.name)}</h1><div class="workspace-meta"><span>${a.id}</span><span>⌖ ${escapeHtml(path(a.locationId))}</span></div></div></div>
         <div class="workspace-status"><span class="health ${healthClass(a)}">${escapeHtml(a.healthLabel||"Healthy")}</span><span class="lifecycle-badge ${lc}">${lifecycleIcon(lc)} ${lifecycleLabel(lc)}</span></div>
       </div>
       <div class="workspace-actions"><button class="primary-button" data-workspace-service>⚒ Record Service</button><button class="secondary-button" data-workspace-note>＋ Add Note</button><button class="secondary-button" data-workspace-receipt>▤ Add Receipt</button><button class="secondary-button" data-edit-current>✎ Edit Asset</button></div>

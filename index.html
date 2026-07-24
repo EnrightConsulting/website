@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#101828" />
-  <title>EnView 0.8.0 — Asset Center</title>
+  <title>EnView 0.9.1 — Asset Profile</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
@@ -27,7 +27,7 @@
     </nav>
     <div class="sidebar-footer">
       <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
-      <div class="version">EnView 0.9.0 · Stabilization</div>
+      <div class="version"><strong>EnView v0.9.1</strong><span>Asset Profile</span></div>
     </div>
   </aside>
 
@@ -41,7 +41,7 @@
     <main class="content">
       <section class="page active" id="page-dashboard">
         <div class="page-heading">
-          <div><p class="eyebrow" id="todayDate"></p><h1>Good morning, Kelly</h1><p class="subhead">Here is what deserves your attention today.</p></div>
+          <div><p class="eyebrow" id="todayDate"></p><h1>Good morning, Kelly</h1><p class="subhead" id="dashboardSummary">Here is what deserves your attention today.</p></div>
           <button class="primary-button" data-open-quick>＋ Quick Action</button>
         </div>
 
@@ -55,29 +55,25 @@
           <div id="favoriteGrid" class="asset-grid"></div>
         </section>
 
-        <section class="dashboard-section">
-          <div class="section-head"><div><p class="eyebrow">Workspace</p><h2>Applications</h2></div></div>
-          <div class="application-grid">
-            <button class="application-card" data-page-target="homeview"><span class="app-icon home">⌂</span><span><strong>HomeView</strong><small>Property, systems and buildings</small></span><span>›</span></button>
-            <button class="application-card" data-page-target="powerview"><span class="app-icon power">ϟ</span><span><strong>PowerView</strong><small>Real-time home energy intelligence</small></span><span>›</span></button>
-            <button class="application-card" data-page-target="maintenance"><span class="app-icon maintenance">⚒</span><span><strong>MaintenanceView</strong><small>Vehicles, equipment and service</small></span><span>›</span></button>
-            <button class="application-card" data-page-target="network"><span class="app-icon network">◎</span><span><strong>NetworkView</strong><small>Devices, connections and health</small></span><span>›</span></button>
-            <button class="application-card" data-page-target="finance"><span class="app-icon finance">$</span><span><strong>FinanceView</strong><small>Business performance and insights</small></span><span>›</span></button>
-            <button class="application-card" data-page-target="operations"><span class="app-icon operations">↗</span><span><strong>OperationsView</strong><small>Workflows, activity and performance</small></span><span>›</span></button>
-            <button class="application-card" data-page-target="library"><span class="app-icon library">▤</span><span><strong>Library</strong><small>Manuals, receipts and documents</small></span><span>›</span></button>
-          </div>
+        <section class="dashboard-section dashboard-insight-grid">
+          <article class="card dashboard-health-card">
+            <p class="eyebrow">Asset health</p>
+            <h2 id="dashboardHealthTitle">Everything else is healthy.</h2>
+            <p id="dashboardHealthDetail">EnView is checking your active assets and bringing only the exceptions forward.</p>
+            <button class="text-button" data-page-target="assets">View all assets →</button>
+          </article>
+          <article class="card principle-card"><p class="eyebrow light">EnView principle</p><h2>Capture once.<br/>Use everywhere.</h2><p>Record information once, then use it across Dashboard, Assets, Maintenance, Finance, PowerView, NetworkView, and OperationsView.</p></article>
         </section>
 
-        <section class="lower-grid">
+        <section class="dashboard-section">
           <div class="card">
-            <div class="section-head"><div><p class="eyebrow">Latest</p><h2>Recent activity</h2></div></div>
+            <div class="section-head"><div><p class="eyebrow">Latest</p><h2>Recent activity</h2></div><button class="text-button" data-page-target="assets">View timeline</button></div>
             <div class="activity-list">
-              <div class="activity"><span>⚒</span><div><strong>Tiguan maintenance record updated</strong><small>MaintenanceView · Yesterday</small></div></div>
+              <div class="activity"><span>⚒</span><div><strong>Tiguan maintenance record updated</strong><small>Maintenance · Yesterday</small></div></div>
               <div class="activity"><span>ϟ</span><div><strong>PowerView telemetry received</strong><small>PowerView · 12 minutes ago</small></div></div>
               <div class="activity"><span>⌖</span><div><strong>Pressure washer moved to Barndo workshop</strong><small>Locations · 2 days ago</small></div></div>
             </div>
           </div>
-          <div class="card principle-card"><p class="eyebrow light">EnView principle</p><h2>Capture once.<br/>Use everywhere.</h2><p>The Core Engine stays behind the scenes while the experience stays fast, calm and useful.</p></div>
         </section>
       </section>
 
@@ -133,7 +129,7 @@
       <button data-quick-action="order-parts"><span>▣</span><strong>Order Parts</strong><small>Open saved retailer searches</small></button>
       <button data-quick-action="report-issue"><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
     </div>
-    <p class="modal-note">EnView 0.9.0 connects and verifies every visible Asset Center and Quick Action control.</p>
+    <p class="modal-note">EnView v0.9.1 keeps assets at the center while applications remain available as supporting tools.</p>
   </div>
 </div>
 
