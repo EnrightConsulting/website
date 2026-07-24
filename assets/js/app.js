@@ -1,9 +1,11 @@
-const STORAGE_KEY = "enview-v0.7.2";
+const STORAGE_KEY = "enview-v0.8.0";
 const POWERVIEW_URL = "http://192.168.1.54:8084/#mission";
 let db = null;
 let baseData = null;
 let lastListPage = "dashboard";
 let selectedMaintenanceAssetId = null;
+let assetLifecycleFilter = "active";
+let assetCategoryFilter = "all";
 
 const modulePages = {
   homeview:["⌂","HomeView","Property systems, buildings and recurring home care."],
@@ -18,11 +20,12 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
-  db.assets.forEach(a => a.meters ||= []);
+  db.assets.forEach(a => { a.meters ||= []; a.lifecycle ||= "active"; a.sleepUntil ||= null; });
+  wakeScheduledAssets();
   selectedMaintenanceAssetId = db.assets.find(a => db.maintenancePlans.some(p => p.assetId === a.id))?.id || db.assets[0]?.id;
   buildPlaceholders();
   injectMaintenanceDialogs();
@@ -30,6 +33,16 @@ async function init(){
 }
 
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+function wakeScheduledAssets(){
+  const today=new Date().toISOString().slice(0,10);
+  let changed=false;
+  db.assets.forEach(a=>{ if(a.lifecycle==="sleeping"&&a.sleepUntil&&a.sleepUntil<=today){a.lifecycle="active";a.sleepUntil=null;changed=true;} });
+  if(changed) save();
+}
+function lifecycleLabel(v){ return ({active:"Active",sleeping:"Sleeping",disabled:"Disabled",archived:"Archived"})[v]||"Active"; }
+function lifecycleIcon(v){ return ({active:"●",sleeping:"☾",disabled:"⊘",archived:"▣"})[v]||"●"; }
+function activeAssets(){ return db.assets.filter(a=>(a.lifecycle||"active")==="active"); }
+
 function uid(prefix){ return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`; }
 function escapeHtml(v=""){ return String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c])); }
 
@@ -79,6 +92,25 @@ function injectMaintenanceDialogs(){
       <div class="field full"><span>Checklist</span><div id="serviceChecklist" class="checklist-editor"></div></div>
     </div>
     <div class="modal-actions"><button class="secondary-button" data-close-service>Cancel</button><button class="primary-button" id="saveServiceButton">Complete service</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="assetModal"><div class="modal maintenance-modal">
+    <div class="modal-head"><div><p class="eyebrow">Asset Center</p><h2 id="assetModalTitle">Add asset</h2></div><button class="close-button" data-close-asset>×</button></div>
+    <div class="form-grid">
+      <label class="field"><span>Asset name</span><input id="assetName" placeholder="Example: Workshop air compressor" /></label>
+      <label class="field"><span>Short name</span><input id="assetShortName" placeholder="Example: Air Compressor" /></label>
+      <label class="field"><span>Category</span><select id="assetCategory"><option value="vehicle">Vehicle</option><option value="equipment">Equipment</option><option value="home">Home System</option><option value="network">Network</option><option value="energy">Energy</option><option value="appliance">Appliance</option><option value="building">Building</option><option value="other">Other</option></select></label>
+      <label class="field"><span>Location</span><select id="assetLocation"></select></label>
+      <label class="field"><span>Manufacturer</span><input id="assetManufacturer" /></label>
+      <label class="field"><span>Model</span><input id="assetModel" /></label>
+      <label class="field"><span>Serial number</span><input id="assetSerial" /></label>
+      <label class="field"><span>Icon</span><input id="assetIcon" maxlength="3" placeholder="◇" /></label>
+      <label class="field"><span>Lifecycle status</span><select id="assetLifecycle"><option value="active">Active</option><option value="sleeping">Sleeping</option><option value="disabled">Disabled</option><option value="archived">Archived</option></select></label>
+      <label class="field"><span>Wake date (optional)</span><input id="assetSleepUntil" type="date" /></label>
+      <label class="field full"><span>Notes / summary</span><textarea id="assetSummary" rows="3"></textarea></label>
+      <label class="check-row full"><input type="checkbox" id="assetFavorite"><span>Add to favorites</span></label>
+    </div>
+    <div class="modal-actions"><button class="secondary-button" data-close-asset>Cancel</button><button class="primary-button" id="saveAssetButton">Save asset</button></div>
   </div></div>`);
 }
 
@@ -87,6 +119,7 @@ function asset(id){ return db.assets.find(x=>x.id===id); }
 function plan(id){ return db.maintenancePlans.find(x=>x.id===id); }
 function path(id){ return loc(id)?.path.join(" · ") || "Location not assigned"; }
 function healthClass(a){ return a.status; }
+function assetLifecycle(a){ return a.lifecycle||"active"; }
 function statusDot(a){ return `<span class="status-dot ${healthClass(a)}"></span>`; }
 function sourceLabel(s){ return ({manufacturer:"Manufacturer",enview:"EnView",company:"Company Standard",regulatory:"Regulatory",user:"User Created"})[s] || s; }
 
@@ -123,25 +156,77 @@ function planState(p){
 }
 function planStatusLabel(s){ return ({overdue:"Overdue",soon:"Due Soon",current:"Current",unknown:"Needs Setup"})[s]; }
 function assetPlanSummary(assetId){
-  const plans=db.maintenancePlans.filter(p=>p.assetId===assetId&&p.active);
+  const target=asset(assetId);
+  const plans=db.maintenancePlans.filter(p=>p.assetId===assetId&&p.active&&assetLifecycle(target)==="active");
   return {total:plans.length,overdue:plans.filter(p=>planState(p)==="overdue").length,soon:plans.filter(p=>planState(p)==="soon").length,current:plans.filter(p=>planState(p)==="current").length};
 }
 
 function assetCard(a){
   const metric=a.metrics?.[0]||{label:"Status",value:a.summary};
-  return `<button class="asset-card" data-open-asset="${a.id}"><div class="asset-head"><span class="asset-icon">${a.icon}</span><span class="health ${healthClass(a)}">${a.healthLabel}</span></div><h3>${escapeHtml(a.shortName||a.name)}</h3><div class="location">⌖ ${escapeHtml(path(a.locationId))}</div><div class="metric"><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(metric.value)}</strong></div></button>`;
+  const lc=assetLifecycle(a);
+  return `<article class="asset-card-wrap ${lc}"><button class="asset-card" data-open-asset="${a.id}"><div class="asset-head"><span class="asset-icon">${escapeHtml(a.icon||"◇")}</span><span class="health ${healthClass(a)}">${escapeHtml(a.healthLabel||"Healthy")}</span></div><h3>${escapeHtml(a.shortName||a.name)}</h3><div class="location">⌖ ${escapeHtml(path(a.locationId))}</div><div class="asset-lifecycle ${lc}">${lifecycleIcon(lc)} ${lifecycleLabel(lc)}${lc==="sleeping"&&a.sleepUntil?` until ${new Date(a.sleepUntil+"T12:00:00").toLocaleDateString()}`:""}</div><div class="metric"><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(metric.value)}</strong></div></button><button class="asset-card-menu" title="Manage asset" data-manage-asset="${a.id}">•••</button></article>`;
 }
 
 function renderAll(){
-  const priorities=db.assets.filter(a=>a.status!=="healthy").slice(0,4);
+  const priorities=activeAssets().filter(a=>a.status!=="healthy").slice(0,4);
   document.getElementById("priorityGrid").innerHTML=priorities.map(a=>`<button class="priority-item" data-open-asset="${a.id}">${statusDot(a)}<span class="priority-copy"><strong>${escapeHtml(a.nextAction)}</strong><small>${escapeHtml(a.shortName)} · ${escapeHtml(path(a.locationId))}</small></span><span>›</span></button>`).join("");
-  const favs=db.assets.filter(a=>a.favorite);
+  const favs=activeAssets().filter(a=>a.favorite);
   document.getElementById("favoriteGrid").innerHTML=favs.map(assetCard).join("");
   document.getElementById("favoritesPageGrid").innerHTML=favs.map(assetCard).join("");
-  document.getElementById("allAssetGrid").innerHTML=db.assets.map(assetCard).join("");
+  renderAssetCenter();
   renderLocations(); renderMaintenance(); bindAssetLinks();
 }
 
+function renderAssetCenter(){
+  const all=db.assets;
+  const counts={active:0,sleeping:0,disabled:0,archived:0};
+  all.forEach(a=>counts[assetLifecycle(a)]++);
+  ["active","sleeping","disabled","archived"].forEach(k=>{const el=document.querySelector(`[data-lifecycle-count="${k}"]`);if(el)el.textContent=counts[k];});
+  const list=all.filter(a=>(assetLifecycleFilter==="all"||assetLifecycle(a)===assetLifecycleFilter)&&(assetCategoryFilter==="all"||a.category===assetCategoryFilter));
+  const grid=document.getElementById("allAssetGrid");
+  if(grid) grid.innerHTML=list.length?list.map(assetCard).join(""):`<div class="empty-state asset-empty"><div class="placeholder-icon">◇</div><h2>No ${assetLifecycleFilter} assets</h2><p>Add a new asset or choose another lifecycle filter.</p><button class="primary-button" data-add-asset>＋ Add Asset</button></div>`;
+  bindAssetLinks(); bindAssetManagement();
+  document.querySelectorAll("[data-add-asset]").forEach(b=>b.onclick=()=>openAssetModal());
+}
+function bindAssetManagement(){ document.querySelectorAll("[data-manage-asset]").forEach(b=>b.onclick=e=>{e.stopPropagation();openAssetModal(b.dataset.manageAsset);}); }
+function openAssetModal(assetId){
+  const a=assetId?asset(assetId):null;
+  document.getElementById("assetModalTitle").textContent=a?"Manage asset":"Add asset";
+  document.getElementById("assetLocation").innerHTML=db.locations.map(l=>`<option value="${l.id}">${escapeHtml(l.path.join(" · "))}</option>`).join("");
+  document.getElementById("assetName").value=a?.name||"";
+  document.getElementById("assetShortName").value=a?.shortName||"";
+  document.getElementById("assetCategory").value=a?.category||"equipment";
+  document.getElementById("assetLocation").value=a?.locationId||db.locations[0]?.id||"";
+  document.getElementById("assetManufacturer").value=a?.identity?.manufacturer||"";
+  document.getElementById("assetModel").value=a?.identity?.model||"";
+  document.getElementById("assetSerial").value=a?.identity?.serialNumber||"";
+  document.getElementById("assetIcon").value=a?.icon||"◇";
+  document.getElementById("assetLifecycle").value=a?.lifecycle||"active";
+  document.getElementById("assetSleepUntil").value=a?.sleepUntil||"";
+  document.getElementById("assetSummary").value=a?.summary||"";
+  document.getElementById("assetFavorite").checked=Boolean(a?.favorite);
+  document.getElementById("saveAssetButton").dataset.assetId=assetId||"";
+  document.getElementById("assetModal").classList.add("open");
+}
+function saveAssetFromModal(){
+  const id=document.getElementById("saveAssetButton").dataset.assetId;
+  const name=document.getElementById("assetName").value.trim();
+  if(!name){alert("Please enter an asset name.");return;}
+  const lifecycle=document.getElementById("assetLifecycle").value;
+  const values={name,shortName:document.getElementById("assetShortName").value.trim()||name,category:document.getElementById("assetCategory").value,locationId:document.getElementById("assetLocation").value,icon:document.getElementById("assetIcon").value.trim()||"◇",lifecycle,sleepUntil:lifecycle==="sleeping"?(document.getElementById("assetSleepUntil").value||null):null,summary:document.getElementById("assetSummary").value.trim()||"No summary added.",favorite:document.getElementById("assetFavorite").checked,identity:{manufacturer:document.getElementById("assetManufacturer").value.trim(),model:document.getElementById("assetModel").value.trim(),serialNumber:document.getElementById("assetSerial").value.trim()}};
+  if(id){Object.assign(asset(id),values);}else{db.assets.unshift({id:uid("ENV-AST"),...values,status:"healthy",healthLabel:"Healthy",nextAction:"No action needed",metrics:[],specifications:[],history:[],parts:[],meters:[]});}
+  save();closeModal("assetModal");renderAll();showPage("assets");
+}
+function setAssetLifecycle(id,lifecycle){
+  const a=asset(id);if(!a)return;
+  a.lifecycle=lifecycle;if(lifecycle!=="sleeping")a.sleepUntil=null;
+  save();renderAll();openAsset(id);
+}
+function deleteAssetPermanently(id){
+  const a=asset(id);if(!a||!confirm(`Permanently delete ${a.name}? This also deletes its maintenance plans and service history and cannot be undone.`))return;
+  db.assets=db.assets.filter(x=>x.id!==id);db.maintenancePlans=db.maintenancePlans.filter(p=>p.assetId!==id);db.serviceHistory=db.serviceHistory.filter(s=>s.assetId!==id);
+  save();renderAll();showPage("assets");
+}
 function renderMaintenance(){
   const page=document.getElementById("page-maintenance");
   const a=asset(selectedMaintenanceAssetId)||db.assets[0];
@@ -152,7 +237,7 @@ function renderMaintenance(){
   const groups=[...new Set(plans.map(p=>p.group||"Other"))];
   page.innerHTML=`
     <div class="page-heading maintenance-heading"><div><p class="eyebrow">Asset intelligence</p><h1>MaintenanceView</h1><p class="subhead">Build the ideal maintenance program, not just a service log.</p></div><button class="primary-button" data-add-plan>＋ Add Maintenance Plan</button></div>
-    <div class="maintenance-toolbar card"><label class="field"><span>Asset</span><select id="maintenanceAssetSelect">${db.assets.map(x=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${escapeHtml(x.name)}</option>`).join("")}</select></label><div class="maintenance-asset-identity"><span class="asset-icon">${a.icon}</span><div><strong>${escapeHtml(a.name)}</strong><small>${escapeHtml(path(a.locationId))}</small></div></div></div>
+    <div class="maintenance-toolbar card"><label class="field"><span>Asset</span><select id="maintenanceAssetSelect">${db.assets.filter(x=>assetLifecycle(x)!=="archived").map(x=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${escapeHtml(x.name)}</option>`).join("")}</select></label><div class="maintenance-asset-identity"><span class="asset-icon">${a.icon}</span><div><strong>${escapeHtml(a.name)}</strong><small>${escapeHtml(path(a.locationId))}</small></div></div></div>
     <div class="maintenance-metrics"><div class="metric-card"><small>Active plans</small><strong>${summary.total}</strong></div><div class="metric-card"><small>Current</small><strong>${summary.current}</strong></div><div class="metric-card attention-metric"><small>Due soon</small><strong>${summary.soon}</strong></div><div class="metric-card danger-metric"><small>Overdue</small><strong>${summary.overdue}</strong></div></div>
     ${plans.length?groups.map(g=>`<section class="maintenance-group"><div class="section-head"><div><p class="eyebrow">Program group</p><h2>${escapeHtml(g)}</h2></div><span class="count-pill">${plans.filter(p=>p.group===g).length} plans</span></div><div class="maintenance-plan-grid">${plans.filter(p=>p.group===g).map(planCard).join("")}</div></section>`).join(""):`<div class="empty-state"><div class="placeholder-icon">⚒</div><h2>No maintenance plans yet</h2><p>Add a manufacturer recommendation, company standard, regulatory item, or your own preventive-care plan.</p><button class="primary-button" data-add-plan>＋ Add Maintenance Plan</button></div>`}
   `;
@@ -255,20 +340,24 @@ function closeModal(id){ document.getElementById(id).classList.remove("open"); }
 
 function renderLocations(){
   const top=db.locations.filter(l=>!l.parentId);
-  document.getElementById("locationGrid").innerHTML=top.map(l=>{const count=db.assets.filter(a=>loc(a.locationId)?.path[0]===l.name).length;return `<button class="location-card" data-open-location="${l.id}"><div class="asset-icon">⌖</div><h3>${escapeHtml(l.name)}</h3><p>${count} assets across this location hierarchy.</p></button>`;}).join("");
+  document.getElementById("locationGrid").innerHTML=top.map(l=>{const count=db.assets.filter(a=>assetLifecycle(a)!=="archived"&&loc(a.locationId)?.path[0]===l.name).length;return `<button class="location-card" data-open-location="${l.id}"><div class="asset-icon">⌖</div><h3>${escapeHtml(l.name)}</h3><p>${count} assets across this location hierarchy.</p></button>`;}).join("");
   document.querySelectorAll("[data-open-location]").forEach(b=>b.onclick=()=>openLocation(b.dataset.openLocation));
 }
 function openLocation(id){
-  const l=loc(id); if(!l)return; const list=db.assets.filter(a=>loc(a.locationId)?.path[0]===l.name);
+  const l=loc(id); if(!l)return; const list=db.assets.filter(a=>assetLifecycle(a)!=="archived"&&loc(a.locationId)?.path[0]===l.name);
   document.getElementById("locationDetail").innerHTML=`<div class="detail-hero"><div class="detail-identity"><div class="detail-icon">⌖</div><div><p class="eyebrow">${escapeHtml(l.type)}</p><h1>${escapeHtml(l.name)}</h1><div class="detail-id">${l.id}</div></div></div></div><div class="section-head"><div><p class="eyebrow">At this location</p><h2>Assets</h2></div></div><div class="asset-grid large">${list.map(assetCard).join("")}</div>`;
   lastListPage="locations"; showPage("location-detail"); bindAssetLinks();
 }
 function bindAssetLinks(){ document.querySelectorAll("[data-open-asset]").forEach(b=>b.onclick=()=>openAsset(b.dataset.openAsset)); }
 function openAsset(id){
-  const a=asset(id); if(!a)return; const parts=(a.parts||[]).map(id=>db.parts.find(p=>p.id===id)).filter(Boolean); const m=assetPlanSummary(a.id);
-  document.getElementById("assetDetail").innerHTML=`<div class="detail-hero"><div class="detail-top"><div class="detail-identity"><div class="detail-icon">${a.icon}</div><div><p class="eyebrow">${a.category}</p><h1>${escapeHtml(a.name)}</h1><div class="detail-id">${a.id}</div><div class="detail-location">⌖ ${escapeHtml(path(a.locationId))}</div></div></div><span class="health ${healthClass(a)}">${a.healthLabel}</span></div><div class="detail-grid">${(a.metrics||[]).map(x=>`<div class="detail-stat"><small>${escapeHtml(x.label)}</small><strong>${escapeHtml(x.value)}</strong></div>`).join("")}</div></div>
-  <div class="detail-panels"><section class="detail-panel"><p class="eyebrow">Maintenance program</p><h2>${m.total} active plans</h2><p class="subhead">${m.overdue} overdue · ${m.soon} due soon</p><button class="primary-button" id="openAssetMaintenance">Open MaintenanceView</button></section><section class="detail-panel"><p class="eyebrow">Next action</p><h2>${escapeHtml(a.nextAction)}</h2><p class="subhead">${escapeHtml(a.summary)}</p></section><section class="detail-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>${(a.specifications||[]).length?a.specifications.map(s=>`<div class="record-row"><small>${escapeHtml(s.label)}</small><br><strong>${escapeHtml(s.value)}</strong></div>`).join(""):`<p class="subhead">Specifications will be added as this asset is completed.</p>`}</section><section class="detail-panel"><p class="eyebrow">Parts & ordering</p><h2>Required items</h2>${parts.length?parts.map(p=>`<div class="part-row"><strong>${escapeHtml(p.name)}</strong><br><small>${escapeHtml(p.partNumber||"No part number")} · ${p.verifiedFitment?"Verified":"Fitment must be verified"}</small></div>`).join(""):`<p class="subhead">No parts linked yet.</p>`}</section><section class="detail-panel"><p class="eyebrow">History</p><h2>Recent activity</h2>${(a.history||[]).length?a.history.map(h=>`<div class="record-row"><small>${escapeHtml(h.date)}</small><br><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.detail)}</small></div>`).join(""):`<p class="subhead">No history entered yet.</p>`}</section><section class="detail-panel"><p class="eyebrow">Permanent identity</p><h2>Core record</h2><div class="record-row"><small>EnView ID</small><br><strong class="detail-id">${a.id}</strong></div><div class="record-row"><small>Location ID</small><br><strong class="detail-id">${a.locationId}</strong></div></section></div>`;
-  document.getElementById("openAssetMaintenance").onclick=()=>{selectedMaintenanceAssetId=a.id;renderMaintenance();showPage("maintenance");}; showPage("asset-detail");
+  const a=asset(id); if(!a)return; const parts=(a.parts||[]).map(id=>db.parts.find(p=>p.id===id)).filter(Boolean); const m=assetPlanSummary(a.id); const lc=assetLifecycle(a);
+  document.getElementById("assetDetail").innerHTML=`<div class="detail-hero"><div class="detail-top"><div class="detail-identity"><div class="detail-icon">${escapeHtml(a.icon||"◇")}</div><div><p class="eyebrow">${escapeHtml(a.category)}</p><h1>${escapeHtml(a.name)}</h1><div class="detail-id">${a.id}</div><div class="detail-location">⌖ ${escapeHtml(path(a.locationId))}</div></div></div><div class="detail-badges"><span class="health ${healthClass(a)}">${escapeHtml(a.healthLabel||"Healthy")}</span><span class="lifecycle-badge ${lc}">${lifecycleIcon(lc)} ${lifecycleLabel(lc)}</span></div></div><div class="asset-management-bar"><button class="secondary-button" data-edit-current>✎ Edit</button><button class="secondary-button" data-life="active">● Activate</button><button class="secondary-button" data-life="sleeping">☾ Sleep</button><button class="secondary-button" data-life="disabled">⊘ Disable</button><button class="secondary-button" data-life="archived">▣ Archive</button><button class="danger-button" data-delete-current>Delete permanently</button></div><div class="detail-grid">${(a.metrics||[]).map(x=>`<div class="detail-stat"><small>${escapeHtml(x.label)}</small><strong>${escapeHtml(x.value)}</strong></div>`).join("")||`<div class="detail-stat"><small>Status</small><strong>${lifecycleLabel(lc)}</strong></div>`}</div></div>
+  <div class="detail-panels"><section class="detail-panel"><p class="eyebrow">Maintenance program</p><h2>${m.total} active plans</h2><p class="subhead">${lc==="active"?`${m.overdue} overdue · ${m.soon} due soon`:"Reminders paused while this asset is not active."}</p><button class="primary-button" id="openAssetMaintenance">Open MaintenanceView</button></section><section class="detail-panel"><p class="eyebrow">Next action</p><h2>${escapeHtml(a.nextAction||"No action needed")}</h2><p class="subhead">${escapeHtml(a.summary||"")}</p></section><section class="detail-panel"><p class="eyebrow">Specifications</p><h2>Known facts</h2>${(a.specifications||[]).length?a.specifications.map(s=>`<div class="record-row"><small>${escapeHtml(s.label)}</small><br><strong>${escapeHtml(s.value)}</strong></div>`).join(""):`<p class="subhead">Specifications will be added as this asset is completed.</p>`}</section><section class="detail-panel"><p class="eyebrow">Parts & ordering</p><h2>Required items</h2>${parts.length?parts.map(p=>`<div class="part-row"><strong>${escapeHtml(p.name)}</strong><br><small>${escapeHtml(p.partNumber||"No part number")} · ${p.verifiedFitment?"Verified":"Fitment must be verified"}</small></div>`).join(""):`<p class="subhead">No parts linked yet.</p>`}</section><section class="detail-panel"><p class="eyebrow">History</p><h2>Recent activity</h2>${(a.history||[]).length?a.history.map(h=>`<div class="record-row"><small>${escapeHtml(h.date)}</small><br><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.detail)}</small></div>`).join(""):`<p class="subhead">No history entered yet.</p>`}</section><section class="detail-panel"><p class="eyebrow">Permanent identity</p><h2>Core record</h2><div class="record-row"><small>EnView ID</small><br><strong class="detail-id">${a.id}</strong></div><div class="record-row"><small>Location ID</small><br><strong class="detail-id">${a.locationId}</strong></div></section></div>`;
+  document.getElementById("openAssetMaintenance").onclick=()=>{selectedMaintenanceAssetId=a.id;renderMaintenance();showPage("maintenance");};
+  document.querySelector("[data-edit-current]").onclick=()=>openAssetModal(a.id);
+  document.querySelectorAll("[data-life]").forEach(b=>b.onclick=()=>{if(b.dataset.life==="sleeping"){openAssetModal(a.id);document.getElementById("assetLifecycle").value="sleeping";}else setAssetLifecycle(a.id,b.dataset.life);});
+  document.querySelector("[data-delete-current]").onclick=()=>deleteAssetPermanently(a.id);
+  showPage("asset-detail");
 }
 
 function showPage(name){
@@ -282,16 +371,18 @@ document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{if(b.dataset.
 document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>{if(b.dataset.pageTarget==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.pageTarget);});
 document.getElementById("assetBack").onclick=()=>showPage(lastListPage);
 document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
-document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");const f=b.dataset.filter;document.getElementById("allAssetGrid").innerHTML=db.assets.filter(a=>f==="all"||a.category===f).map(assetCard).join("");bindAssetLinks();});
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetCategoryFilter=b.dataset.filter;renderAssetCenter();});
+document.querySelectorAll("[data-lifecycle-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-lifecycle-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetLifecycleFilter=b.dataset.lifecycleFilter;renderAssetCenter();});
 
 const quick=document.getElementById("quickModal");
+document.querySelectorAll("[data-quick-add-asset]").forEach(b=>b.onclick=()=>{quick.classList.remove("open");openAssetModal();});
 document.querySelectorAll("[data-open-quick]").forEach(b=>b.onclick=()=>quick.classList.add("open")); document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>quick.classList.remove("open")); quick.onclick=e=>{if(e.target===quick)quick.classList.remove("open")};
-document.addEventListener("click",e=>{if(e.target.matches("[data-close-plan]"))closeModal("planModal");if(e.target.matches("[data-close-trigger]"))closeModal("triggerModal");if(e.target.matches("[data-close-service]"))closeModal("serviceModal");if(e.target.classList.contains("modal-backdrop"))e.target.classList.remove("open");});
-document.getElementById("savePlanButton").onclick=savePlanFromModal; document.getElementById("saveTriggerButton").onclick=saveTriggerFromModal; document.getElementById("saveServiceButton").onclick=saveServiceFromModal; document.getElementById("triggerType").onchange=updateTriggerFields;
+document.addEventListener("click",e=>{if(e.target.matches("[data-close-plan]"))closeModal("planModal");if(e.target.matches("[data-close-trigger]"))closeModal("triggerModal");if(e.target.matches("[data-close-service]"))closeModal("serviceModal");if(e.target.matches("[data-close-asset]"))closeModal("assetModal");if(e.target.classList.contains("modal-backdrop"))e.target.classList.remove("open");});
+document.getElementById("saveAssetButton").onclick=saveAssetFromModal; document.getElementById("savePlanButton").onclick=savePlanFromModal; document.getElementById("saveTriggerButton").onclick=saveTriggerFromModal; document.getElementById("saveServiceButton").onclick=saveServiceFromModal; document.getElementById("triggerType").onchange=updateTriggerFields;
 
 document.getElementById("todayDate").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date());
 const input=document.getElementById("globalSearch"),results=document.getElementById("searchResults");
 function search(q){if(!q){results.classList.remove("open");return}const n=q.toLowerCase();const hits=[...db.assets.filter(a=>JSON.stringify(a).toLowerCase().includes(n)).map(a=>({title:a.name,sub:`Asset · ${a.id}`,go:()=>openAsset(a.id)})),...db.locations.filter(l=>JSON.stringify(l).toLowerCase().includes(n)).map(l=>({title:l.name,sub:`Location · ${l.id}`,go:()=>openLocation(l.id)})),...db.maintenancePlans.filter(p=>JSON.stringify(p).toLowerCase().includes(n)).map(p=>({title:p.name,sub:`Maintenance · ${asset(p.assetId)?.shortName||p.assetId}`,go:()=>{selectedMaintenanceAssetId=p.assetId;renderMaintenance();showPage("maintenance")}}))].slice(0,8);results.innerHTML=hits.length?hits.map((h,i)=>`<button class="search-result" data-hit="${i}"><span><strong>${escapeHtml(h.title)}</strong><br><small>${escapeHtml(h.sub)}</small></span><span>›</span></button>`).join(""):`<div style="padding:14px;color:#667085">No results found</div>`;results.classList.add("open");results.querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{hits[Number(b.dataset.hit)].go();results.classList.remove("open");input.value=""});}
-input.oninput=e=>search(e.target.value.trim()); document.addEventListener("click",e=>{if(!results.contains(e.target)&&e.target!==input)results.classList.remove("open")}); document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();input.focus()}if(e.key==="Escape"){quick.classList.remove("open");results.classList.remove("open");["planModal","triggerModal","serviceModal"].forEach(closeModal)}});
+input.oninput=e=>search(e.target.value.trim()); document.addEventListener("click",e=>{if(!results.contains(e.target)&&e.target!==input)results.classList.remove("open")}); document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();input.focus()}if(e.key==="Escape"){quick.classList.remove("open");results.classList.remove("open");["planModal","triggerModal","serviceModal","assetModal"].forEach(closeModal)}});
 
 init();

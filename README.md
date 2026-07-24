@@ -1,28 +1,17 @@
-# EnView 0.7.2 — Maintenance Intelligence
+# EnView 0.8.0 — Asset Center
 
-This release expands EnView from the 0.6.1 experience layer into a functional maintenance-planning system.
+This release turns Assets into a complete lifecycle workspace.
 
 ## Included
+- Add and edit assets from the Asset Center or quick-action menu
+- Active, Sleeping, Disabled, and Archived lifecycle states
+- Optional wake date for seasonal or temporarily stored assets
+- Lifecycle counts and filters
+- Maintenance reminders pause automatically for non-active assets
+- Archive instead of deleting by default
+- Protected permanent deletion with explicit confirmation
+- Asset management controls from cards and detail pages
+- Existing Maintenance Intelligence, service history, and PowerView connection preserved
 
-- Asset-specific maintenance programs
-- Multiple maintenance plans per asset
-- Maintenance plan groups
-- Manufacturer, EnView, company, regulatory, and user-created sources
-- Multiple time- and meter-based triggers per plan
-- Manufacturer/suggested intervals preserved beside editable active intervals
-- Optional reason for interval overrides
-- User-created plans above manufacturer specifications
-- Reusable service checklists
-- Service recording with date, cost, notes, and meter readings
-- Automatic next-due calculations
-- Current, due-soon, overdue, and needs-setup statuses
-- Local browser persistence through localStorage
-- Maintenance plan search through the global search bar
-
-## Use
-
-Open `index.html` through a local web server or deploy the folder to Cloudflare Pages. Direct file opening may block the JSON fetch in some browsers.
-
-## Data
-
-Starter data lives in `assets/data/core.json`. User changes are stored in the browser under `enview-v0.7.2`.
+## Deployment
+Upload the contents of this folder to the root of the EnrightConsulting/website repository. Cloudflare Pages will deploy automatically.

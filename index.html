@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#101828" />
-  <title>EnView 0.7.2 — Maintenance Intelligence</title>
+  <title>EnView 0.8.0 — Asset Center</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
@@ -27,7 +27,7 @@
     </nav>
     <div class="sidebar-footer">
       <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
-      <div class="version">EnView 0.7.2 · Maintenance Intelligence</div>
+      <div class="version">EnView 0.8.0 · Asset Center</div>
     </div>
   </aside>
 
@@ -84,7 +84,14 @@
       <section class="page" id="page-favorites"><div class="page-heading"><div><p class="eyebrow">One-click access</p><h1>Favorites</h1><p class="subhead">The assets you use most, ready immediately.</p></div></div><div id="favoritesPageGrid" class="asset-grid large"></div></section>
 
       <section class="page" id="page-assets">
-        <div class="page-heading"><div><p class="eyebrow">Your world</p><h1>Assets</h1><p class="subhead">Browse or search without digging through folders.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Your world</p><h1>Asset Center</h1><p class="subhead">Add, organize, sleep, disable, archive, or restore any asset without losing its history.</p></div><button class="primary-button" data-add-asset>＋ Add Asset</button></div>
+        <div class="asset-lifecycle-tabs">
+          <button class="lifecycle-tab active" data-lifecycle-filter="active">Active <span data-lifecycle-count="active">0</span></button>
+          <button class="lifecycle-tab" data-lifecycle-filter="sleeping">Sleeping <span data-lifecycle-count="sleeping">0</span></button>
+          <button class="lifecycle-tab" data-lifecycle-filter="disabled">Disabled <span data-lifecycle-count="disabled">0</span></button>
+          <button class="lifecycle-tab" data-lifecycle-filter="archived">Archived <span data-lifecycle-count="archived">0</span></button>
+          <button class="lifecycle-tab" data-lifecycle-filter="all">All</button>
+        </div>
         <div class="filter-row">
           <button class="filter-chip active" data-filter="all">All</button>
           <button class="filter-chip" data-filter="vehicle">Vehicles</button>
@@ -120,13 +127,13 @@
     <div class="modal-head"><div><p class="eyebrow">Fast capture</p><h2>What do you want to do?</h2></div><button class="close-button" data-close>×</button></div>
     <div class="quick-grid">
       <button><span>⚒</span><strong>Log Service</strong><small>Record work in under 30 seconds</small></button>
-      <button><span>◇</span><strong>Add Asset</strong><small>Create a permanent EnView record</small></button>
+      <button data-quick-add-asset><span>◇</span><strong>Add Asset</strong><small>Create a permanent EnView record</small></button>
       <button><span>⌖</span><strong>Move Asset</strong><small>Update where something lives</small></button>
       <button><span>▤</span><strong>Add Receipt</strong><small>Attach a purchase to an asset</small></button>
       <button><span>▣</span><strong>Order Parts</strong><small>Open saved retailer searches</small></button>
       <button><span>!</span><strong>Report Issue</strong><small>Capture a problem immediately</small></button>
     </div>
-    <p class="modal-note">EnView 0.7.2 adds editable maintenance plans, triggers, checklists, and service history.</p>
+    <p class="modal-note">EnView 0.8.0 adds Asset Center lifecycle controls, quick asset creation, sleep schedules, archive, and protected permanent deletion.</p>
   </div>
 </div>
 
