@@ -1,18 +1,20 @@
-# EnView v0.9.1 — Asset Profile
+# EnView v0.9.2 — PowerView Integration
 
-This focused refinement keeps **Dashboard** as the familiar name while making assets the center of the EnView experience.
+This focused release keeps the original PowerView dashboard inside the EnView experience instead of opening a separate browser window.
 
-## Changes
+## Included
 
-- Corrected release metadata throughout the interface
-- Renamed the user-facing Asset Workspace label to **Asset Profile**
-- Kept **Dashboard** as the primary navigation name
-- Added a useful daily summary based on active asset health
-- Added an empty-state message when no priorities need attention
-- Removed the large application launcher from the Dashboard
-- Kept applications available in the sidebar as supporting tools
-- Elevated asset health, favorites, priorities, and recent activity
-- Reinforced the principle: **Capture once. Use everywhere.**
-- Migrates existing browser data from v0.9.0 and earlier releases
+- PowerView opens within EnView while the EnView sidebar and header remain visible
+- The existing PowerView dashboard is embedded without rebuilding it
+- Live summary strip for battery SOC, solar, home load, grid, and garage temperature
+- Stable fields use `solark.soc`, `solark.pvPower`, `solark.loadPower`, `solark.gridPower`, and `garage_temp.garage_temp_f`
+- Reload and same-tab full-screen controls
+- Editable HTTPS PowerView connection URL for temporary Cloudflare tunnel changes
+- Clear fallback guidance when the tunnel is offline or embedding is blocked
+- Existing v0.9.1 browser data migrates automatically
+
+## Deployment
 
 Upload the contents of this folder to the EnView GitHub repository / Cloudflare Pages project.
+
+The default PowerView URL is the current temporary Cloudflare tunnel. Use **PowerView → Connection** to update it when the tunnel address changes.

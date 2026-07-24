@@ -1,5 +1,13 @@
-const STORAGE_KEY = "enview-v0.9.1";
-const POWERVIEW_URL = "http://192.168.1.54:8084/#mission";
+const STORAGE_KEY = "enview-v0.9.2";
+const POWERVIEW_CONFIG_KEY = "enview-powerview-url";
+const DEFAULT_POWERVIEW_URL = "https://hop-charity-determines-roulette.trycloudflare.com/#mission";
+let powerViewRefreshTimer = null;
+
+function getPowerViewUrl(){ return localStorage.getItem(POWERVIEW_CONFIG_KEY) || DEFAULT_POWERVIEW_URL; }
+function powerViewApiBase(){
+  try { return new URL(getPowerViewUrl()).origin; }
+  catch { return DEFAULT_POWERVIEW_URL.split('/#')[0]; }
+}
 let db = null;
 let baseData = null;
 let lastListPage = "dashboard";
@@ -9,7 +17,6 @@ let assetCategoryFilter = "all";
 
 const modulePages = {
   homeview:["⌂","HomeView","Property systems, buildings and recurring home care."],
-  powerview:["ϟ","PowerView","Live energy data connected to the Harris battery and Sol-Ark assets."],
   network:["◎","NetworkView","Network devices, health, locations and documentation."],
   finance:["$","FinanceView","Simple business performance and financial insight."],
   operations:["↗","OperationsView","Daily workflows, activity and performance."],
@@ -20,7 +27,7 @@ const modulePages = {
 async function init(){
   const res = await fetch("assets/data/core.json");
   baseData = await res.json();
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("enview-v0.9.1") || localStorage.getItem("enview-v0.9.0") || localStorage.getItem("enview-v0.8.1") || localStorage.getItem("enview-v0.8.0") || localStorage.getItem("enview-v0.7.2");
   db = saved ? JSON.parse(saved) : structuredClone(baseData);
   db.maintenancePlans ||= [];
   db.serviceHistory ||= [];
@@ -465,10 +472,92 @@ function addWorkspaceNote(assetId,returnTab="notes"){
   const text=prompt("Add a note about this asset:"); if(!text?.trim())return; const a=asset(assetId);a.notes||=[];a.notes.unshift({id:uid("NOTE"),date:new Date().toLocaleDateString(),text:text.trim()});a.history||=[];a.history.unshift({date:new Date().toLocaleDateString(),title:"Note added",detail:text.trim()});save();showToast("Note added.");openAsset(assetId,returnTab);
 }
 
+function powerMetric(value, suffix=""){
+  const n=Number(value);
+  return Number.isFinite(n) ? `${Math.round(n).toLocaleString()}${suffix}` : "—";
+}
+function powerKw(value){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return "—";
+  return `${(Math.abs(n) >= 100 ? n/1000 : n).toFixed(1)} kW`;
+}
+function renderPowerView(){
+  const page=document.getElementById("page-powerview");
+  const url=getPowerViewUrl();
+  page.innerHTML=`
+    <div class="powerview-page-heading">
+      <div><p class="eyebrow">Real-time home energy intelligence</p><h1>PowerView</h1><p class="subhead">The original PowerView dashboard, kept inside EnView.</p></div>
+      <div class="powerview-actions">
+        <button class="secondary-button" data-pv-settings>Connection</button>
+        <button class="secondary-button" data-pv-reload>Reload</button>
+        <button class="primary-button" data-pv-full>Open full screen</button>
+      </div>
+    </div>
+    <section class="powerview-status" aria-label="PowerView live status">
+      <div class="powerview-metric"><small>Battery</small><strong id="pvSoc">—</strong></div>
+      <div class="powerview-metric"><small>Solar</small><strong id="pvSolar">—</strong></div>
+      <div class="powerview-metric"><small>Home load</small><strong id="pvLoad">—</strong></div>
+      <div class="powerview-metric"><small>Grid</small><strong id="pvGrid">—</strong></div>
+      <div class="powerview-metric"><small>Garage</small><strong id="pvTemp">—</strong></div>
+      <div class="powerview-connection"><span id="pvConnectionDot"></span><div><strong id="pvConnectionText">Connecting…</strong><small id="pvUpdated">Live summary</small></div></div>
+    </section>
+    <section class="powerview-frame-card">
+      <div class="powerview-frame-toolbar"><span>PowerView Dashboard</span><small id="pvFrameUrl">${escapeHtml(url)}</small></div>
+      <iframe id="powerViewFrame" class="powerview-frame" src="${escapeHtml(url)}" title="PowerView dashboard" loading="eager" allow="fullscreen"></iframe>
+      <div class="powerview-frame-help"><strong>Dashboard not visible?</strong><span>The active PowerView tunnel may have changed or the server may block embedding.</span><button class="text-button" data-pv-settings>Update connection</button></div>
+    </section>`;
+
+  page.querySelectorAll("[data-pv-settings]").forEach(b=>b.onclick=()=>{
+    const next=prompt("PowerView HTTPS dashboard URL:",getPowerViewUrl());
+    if(!next?.trim()) return;
+    try { new URL(next.trim()); }
+    catch { alert("Please enter a valid web address beginning with https://"); return; }
+    localStorage.setItem(POWERVIEW_CONFIG_KEY,next.trim());
+    renderPowerView();
+  });
+  page.querySelector("[data-pv-reload]").onclick=()=>{
+    const frame=document.getElementById("powerViewFrame");
+    frame.src=getPowerViewUrl();
+    refreshPowerViewSummary();
+  };
+  page.querySelector("[data-pv-full]").onclick=()=>{ window.location.href=getPowerViewUrl(); };
+  refreshPowerViewSummary();
+  clearInterval(powerViewRefreshTimer);
+  powerViewRefreshTimer=setInterval(()=>{
+    if(document.getElementById("page-powerview")?.classList.contains("active")) refreshPowerViewSummary();
+  },15000);
+}
+async function refreshPowerViewSummary(){
+  const text=document.getElementById("pvConnectionText");
+  const dot=document.getElementById("pvConnectionDot");
+  if(!text||!dot) return;
+  text.textContent="Connecting…"; dot.className="connecting";
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),7000);
+    const response=await fetch(`${powerViewApiBase()}/api/live`,{cache:"no-store",signal:controller.signal});
+    clearTimeout(timer);
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const live=await response.json();
+    const solark=live.solark||{};
+    const garage=live.garage_temp||{};
+    document.getElementById("pvSoc").textContent=powerMetric(solark.soc,"%");
+    document.getElementById("pvSolar").textContent=powerKw(solark.pvPower);
+    document.getElementById("pvLoad").textContent=powerKw(solark.loadPower);
+    document.getElementById("pvGrid").textContent=powerKw(solark.gridPower);
+    document.getElementById("pvTemp").textContent=powerMetric(garage.garage_temp_f,"°F");
+    text.textContent="Live"; dot.className="live";
+    document.getElementById("pvUpdated").textContent=`Updated ${new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}`;
+  }catch(error){
+    text.textContent="Summary unavailable"; dot.className="offline";
+    document.getElementById("pvUpdated").textContent="The dashboard may still load below";
+  }
+}
+
 function showPage(name){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById(`page-${name}`)?.classList.add("active"); document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add("active");
-  if(name==="maintenance")renderMaintenance(); if(["dashboard","favorites","assets","locations"].includes(name))lastListPage=name;
+  if(name==="maintenance")renderMaintenance(); if(name==="powerview")renderPowerView(); if(["dashboard","favorites","assets","locations"].includes(name))lastListPage=name;
   document.getElementById("sidebar").classList.remove("open"); window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -530,8 +619,8 @@ function handleQuickAction(type){
   openActionModal(type);
 }
 function setupBindings(){
-  document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{if(b.dataset.page==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.page);});
-  document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>{if(b.dataset.pageTarget==="powerview")window.open(POWERVIEW_URL,"_blank","noopener");else showPage(b.dataset.pageTarget);});
+  document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+  document.querySelectorAll("[data-page-target]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageTarget));
   document.getElementById("assetBack").onclick=()=>showPage(lastListPage);
   document.getElementById("mobileMenu").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
   document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");assetCategoryFilter=b.dataset.filter;renderAssetCenter();});
