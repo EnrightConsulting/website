@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.6.0",
+  "schemaVersion": "0.7.2",
   "locations": [
     {
       "id": "ENV-LOC-0001",
@@ -171,6 +171,14 @@
       "parts": [
         "ENV-PART-0001",
         "ENV-PART-0002"
+      ],
+      "meters": [
+        {
+          "id": "MTR-ODO-0001",
+          "name": "Odometer",
+          "unit": "miles",
+          "value": 104150
+        }
       ]
     },
     {
@@ -206,7 +214,15 @@
       "identity": {},
       "specifications": [],
       "history": [],
-      "parts": []
+      "parts": [],
+      "meters": [
+        {
+          "id": "MTR-ODO-0002",
+          "name": "Odometer",
+          "unit": "miles",
+          "value": 72850
+        }
+      ]
     },
     {
       "id": "ENV-ENG-0001",
@@ -241,7 +257,8 @@
       "identity": {},
       "specifications": [],
       "history": [],
-      "parts": []
+      "parts": [],
+      "meters": []
     },
     {
       "id": "ENV-HME-0001",
@@ -276,7 +293,8 @@
       "identity": {},
       "specifications": [],
       "history": [],
-      "parts": []
+      "parts": [],
+      "meters": []
     },
     {
       "id": "ENV-NET-0001",
@@ -311,7 +329,8 @@
       "identity": {},
       "specifications": [],
       "history": [],
-      "parts": []
+      "parts": [],
+      "meters": []
     },
     {
       "id": "ENV-EQP-0001",
@@ -346,7 +365,15 @@
       "identity": {},
       "specifications": [],
       "history": [],
-      "parts": []
+      "parts": [],
+      "meters": [
+        {
+          "id": "MTR-HRS-0001",
+          "name": "Engine Hours",
+          "unit": "hours",
+          "value": 185
+        }
+      ]
     }
   ],
   "parts": [
@@ -380,5 +407,197 @@
         "Walmart": "https://www.walmart.com/search?q=VW%20508%2000%200W-20%20engine%20oil"
       }
     }
-  ]
+  ],
+  "maintenancePlans": [
+    {
+      "id": "ENV-MP-0001",
+      "assetId": "ENV-VEH-0001",
+      "name": "Engine Oil & Filter",
+      "description": "Replace engine oil and filter; verify oil specification and reset service reminder.",
+      "group": "Manufacturer",
+      "source": "manufacturer",
+      "priority": "high",
+      "active": true,
+      "checklist": [
+        "Drain engine oil",
+        "Replace oil filter",
+        "Install drain plug and verify seal",
+        "Refill with VW 508 00 oil",
+        "Reset service reminder",
+        "Check for leaks"
+      ],
+      "triggers": [
+        {
+          "id": "TRG-0001",
+          "type": "meter",
+          "meterId": "MTR-ODO-0001",
+          "recommendedValue": 10000,
+          "activeValue": 7500,
+          "unit": "miles",
+          "overrideReason": "Personal severe-service schedule"
+        },
+        {
+          "id": "TRG-0002",
+          "type": "time",
+          "recommendedValue": 12,
+          "activeValue": 12,
+          "unit": "months",
+          "overrideReason": ""
+        }
+      ],
+      "lastService": {
+        "date": "2026-01-22",
+        "meterReadings": {
+          "MTR-ODO-0001": 96500
+        },
+        "cost": 82.5,
+        "notes": "Liqui Moly oil and filter."
+      }
+    },
+    {
+      "id": "ENV-MP-0002",
+      "assetId": "ENV-VEH-0001",
+      "name": "Tire Rotation",
+      "description": "Rotate tires and inspect tread depth and tire pressure.",
+      "group": "Manufacturer",
+      "source": "manufacturer",
+      "priority": "normal",
+      "active": true,
+      "checklist": [
+        "Rotate tires",
+        "Set tire pressures",
+        "Inspect tread depth",
+        "Inspect for uneven wear"
+      ],
+      "triggers": [
+        {
+          "id": "TRG-0003",
+          "type": "meter",
+          "meterId": "MTR-ODO-0001",
+          "recommendedValue": 10000,
+          "activeValue": 5000,
+          "unit": "miles",
+          "overrideReason": "More frequent rotation for even wear"
+        }
+      ],
+      "lastService": {
+        "date": "2026-04-15",
+        "meterReadings": {
+          "MTR-ODO-0001": 101000
+        },
+        "cost": 0,
+        "notes": "Performed at home."
+      }
+    },
+    {
+      "id": "ENV-MP-0003",
+      "assetId": "ENV-VEH-0001",
+      "name": "Wax & Paint Protection",
+      "description": "User-created preventive care above the manufacturer schedule.",
+      "group": "My Custom Care",
+      "source": "user",
+      "priority": "normal",
+      "active": true,
+      "checklist": [
+        "Wash and dry vehicle",
+        "Inspect paint",
+        "Apply wax or sealant",
+        "Clean exterior glass"
+      ],
+      "triggers": [
+        {
+          "id": "TRG-0004",
+          "type": "time",
+          "recommendedValue": null,
+          "activeValue": 6,
+          "unit": "months",
+          "overrideReason": ""
+        }
+      ],
+      "lastService": {
+        "date": "2026-03-01",
+        "meterReadings": {},
+        "cost": 24,
+        "notes": "Synthetic sealant applied."
+      }
+    },
+    {
+      "id": "ENV-MP-0004",
+      "assetId": "ENV-HME-0001",
+      "name": "Replace HVAC Filter",
+      "description": "Replace return-air filter and record condition.",
+      "group": "Preventive Care",
+      "source": "enview",
+      "priority": "high",
+      "active": true,
+      "checklist": [
+        "Turn system off",
+        "Remove old filter",
+        "Confirm airflow direction",
+        "Install new filter",
+        "Record filter condition"
+      ],
+      "triggers": [
+        {
+          "id": "TRG-0005",
+          "type": "time",
+          "recommendedValue": 90,
+          "activeValue": 60,
+          "unit": "days",
+          "overrideReason": "High dust and pet load"
+        }
+      ],
+      "lastService": {
+        "date": "2026-05-28",
+        "meterReadings": {},
+        "cost": 34,
+        "notes": "20 x 25 x 4 filter."
+      }
+    },
+    {
+      "id": "ENV-MP-0005",
+      "assetId": "ENV-EQP-0001",
+      "name": "Engine Oil Change",
+      "description": "Change engine oil based on engine hours or elapsed time.",
+      "group": "Manufacturer",
+      "source": "manufacturer",
+      "priority": "high",
+      "active": true,
+      "checklist": [
+        "Warm engine",
+        "Drain oil",
+        "Replace filter if required",
+        "Refill to specification",
+        "Run and check level"
+      ],
+      "triggers": [
+        {
+          "id": "TRG-0006",
+          "type": "meter",
+          "meterId": "MTR-HRS-0001",
+          "recommendedValue": 100,
+          "activeValue": 75,
+          "unit": "hours",
+          "overrideReason": "Hot-weather operation"
+        },
+        {
+          "id": "TRG-0007",
+          "type": "time",
+          "recommendedValue": 12,
+          "activeValue": 12,
+          "unit": "months",
+          "overrideReason": ""
+        }
+      ],
+      "lastService": {
+        "date": "2026-02-01",
+        "meterReadings": {
+          "MTR-HRS-0001": 140
+        },
+        "cost": 19,
+        "notes": ""
+      }
+    }
+  ],
+  "serviceHistory": []
 }

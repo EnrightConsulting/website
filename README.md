@@ -1,78 +1,28 @@
-# EnView 0.6.1 — PowerView Connected
+# EnView 0.7.2 — Maintenance Intelligence
 
-This release combines the polished EnView 0.4 experience with the object-based Core Engine introduced in 0.5.
-
-## Product direction
-
-The Core Engine powers EnView but no longer becomes the homepage.
-
-Users see:
-
-- A welcoming dashboard
-- Today's priorities
-- Favorite asset cards
-- Applications
-- Recent activity
-- One-click access to useful information
-
-The underlying asset IDs, locations and parts relationships remain available behind every screen.
+This release expands EnView from the 0.6.1 experience layer into a functional maintenance-planning system.
 
 ## Included
 
-- Restored polished dashboard experience
-- Favorite asset cards powered by Core data
-- Priority cards based on asset health
-- Application cards
-- Assets and Locations pages
-- Working search across assets, locations and parts
-- First expanded Tiguan detail experience
-- Quick-action panel
-- Parts and retailer search links
-- Permanent EnView IDs behind the interface
-- Responsive desktop and mobile layouts
+- Asset-specific maintenance programs
+- Multiple maintenance plans per asset
+- Maintenance plan groups
+- Manufacturer, EnView, company, regulatory, and user-created sources
+- Multiple time- and meter-based triggers per plan
+- Manufacturer/suggested intervals preserved beside editable active intervals
+- Optional reason for interval overrides
+- User-created plans above manufacturer specifications
+- Reusable service checklists
+- Service recording with date, cost, notes, and meter readings
+- Automatic next-due calculations
+- Current, due-soon, overdue, and needs-setup statuses
+- Local browser persistence through localStorage
+- Maintenance plan search through the global search bar
 
-## Deployment
+## Use
 
-Upload these files while preserving the folder structure:
+Open `index.html` through a local web server or deploy the folder to Cloudflare Pages. Direct file opening may block the JSON fetch in some browsers.
 
-- `index.html`
-- `README.md`
-- `assets/css/styles.css`
-- `assets/js/app.js`
-- `assets/data/core.json`
+## Data
 
-Cloudflare Pages should deploy automatically after the GitHub commit.
-
-## Repository cleanup
-
-After deployment is confirmed, delete old duplicate root-level files and folders that are no longer used:
-
-- `app.js`
-- `styles.css`
-- `core.json`
-- `css/`
-- `js/`
-- `data/`
-- `maintenance.html`
-
-Keep only the new `assets/` folder and the current root `index.html` and `README.md`.
-
-## Next release
-
-**EnView 0.7 — Tiguan Quick Capture**
-
-- Fast service logging
-- Mileage update
-- Maintenance checkboxes
-- Receipt and cost capture
-- Automatic next-service calculation
-- Local saved maintenance history
-
-
-## PowerView connection
-
-The PowerView sidebar item and dashboard application card now open the live PowerView dashboard in a new browser tab:
-
-`http://192.168.1.54:8084/#mission`
-
-This address is local to the home network, so it will work only when the device opening EnView can reach that private IP address.
+Starter data lives in `assets/data/core.json`. User changes are stored in the browser under `enview-v0.7.2`.
